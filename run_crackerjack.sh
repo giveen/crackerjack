@@ -7,13 +7,6 @@ echo "[*] Checking required packages..."
 sudo apt update
 sudo apt install -y $REQUIRED_PACKAGES
 
-if [ ! -d "crackerjack" ]; then
-    echo "[*] Cloning Crackerjack repository..."
-    git clone https://github.com/giveen/crackerjack.git
-fi
-
-cd crackerjack
-
 VENV_DIR="venv"
 
 if [ ! -d "$VENV_DIR" ]; then
