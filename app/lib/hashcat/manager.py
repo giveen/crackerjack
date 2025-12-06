@@ -44,7 +44,7 @@ class HashcatManager:
         command = [
             self.hashcat_binary,
             '--id',
-            '--mach',
+            '--machine-readable',
             hash
         ]
         output = self.shell.execute(command)
@@ -492,13 +492,13 @@ class HashcatManager:
 
         # progress
         if 'Progress' in raw:
-            matches = re.findall('\((\d+.\d+)', raw['Progress'])
+            matches = re.findall(r"\((\d+\.\d+)", raw['Progress'])
             if len(matches) == 1:
                 data['progress'] = matches[0]
 
         # passwords
         if 'Recovered' in raw:
-            matches = re.findall('(\d+/\d+)', raw['Recovered'])
+            matches = re.findall(r"(\d+/\d+)", raw['Recovered'])
             if len(matches) > 0:
                 passwords = matches[0].split('/')
                 if len(passwords) == 2:
@@ -507,13 +507,13 @@ class HashcatManager:
 
         # time remaining
         if 'Time.Estimated' in raw:
-            matches = re.findall('\((.*)\)', raw['Time.Estimated'])
+            matches = re.findall(r"\((.*)\)", raw['Time.Estimated'])
             if len(matches) == 1:
                 data['time_remaining'] = 'Finished' if matches[0] == '0 secs' else matches[0].strip()
 
         # estimated completion time
         if 'Time.Estimated' in raw:
-            matches = re.findall('(.*)\(', raw['Time.Estimated'])
+            matches = re.findall(r"(.*)\(", raw['Time.Estimated'])
             if len(matches) == 1:
                 data['estimated_completion_time'] = matches[0].strip()
 
