@@ -1,36 +1,66 @@
+{% extends "layout/base.html" %}
+
+{% block topmenu %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand" href="{{ url_for('home.index') }}">CrackerJack</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
+  <a class="navbar-brand" href="{{ url_for('home.index') }}">Crackerjack</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown"
+          aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
 
-    <div class="collapse navbar-collapse justify-content-end" id="navbarColor03">
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('home.index') }}">Home</a>
-            </li>
-            {% if current_user.is_authenticated %}
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" id="menu-modules" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Modules
-                </a>
+  <div class="collapse navbar-collapse" id="navbarNavDropdown">
+    <ul class="navbar-nav mr-auto">
 
-                <div class="dropdown-menu" aria-labelledby="menu-modules">
-                    <a class="dropdown-item" href="{{ url_for('modules.office_index') }}">Office</a>
-                    <a class="dropdown-item" href="{{ url_for('modules.keepass_index') }}">KeePass</a>
-                </div>
-            </li>
-            <li>
-                <a class="nav-link" href="{{ url_for('config.index') }}">Settings</a>
-            </li>
-            <li>
-                <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout [ {{ current_user.full_name }} ]</a>
-            </li>
-            {% else %}
-            <li>
-                <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
-            </li>
-            {% endif %}
-        </ul>
-    </div>
+      <!-- Home -->
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('home.index') }}">Home</a>
+      </li>
+
+      <!-- Modules Dropdown -->
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="modulesDropdown" role="button"
+           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Modules
+        </a>
+        <div class="dropdown-menu" aria-labelledby="modulesDropdown">
+          <a class="dropdown-item" href="{{ url_for('modules.office_index') }}">Office</a>
+          <a class="dropdown-item" href="{{ url_for('modules.keepass_index') }}">KeePass</a>
+          <a class="dropdown-item" href="{{ url_for('modules.xxx_to_john_index') }}">XXXtoJohn</a>
+        </div>
+      </li>
+
+      <!-- Config Dropdown -->
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="configDropdown" role="button"
+           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Config
+        </a>
+        <div class="dropdown-menu" aria-labelledby="configDropdown">
+          <a class="dropdown-item" href="{{ url_for('config.system.general') }}">General</a>
+          <a class="dropdown-item" href="{{ url_for('config.system.hashcat') }}">Hashcat</a>
+          <a class="dropdown-item" href="{{ url_for('config.system.users') }}">Users</a>
+        </div>
+      </li>
+
+      <!-- Sessions -->
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('sessions.index') }}">Sessions</a>
+      </li>
+
+    </ul>
+
+    <!-- Right side: Auth -->
+    <ul class="navbar-nav ml-auto">
+      {% if current_user.is_authenticated %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+      </li>
+      {% else %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+      </li>
+      {% endif %}
+    </ul>
+  </div>
 </nav>
+{% endblock %}
