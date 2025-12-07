@@ -214,20 +214,14 @@ class HashcatManager:
         return collections.OrderedDict(sorted(data.items(), key=lambda kv: kv[1]))
 
 
-
     def is_valid_hash_type(self, hash_type):
-        valid = False
+        """
+        Validate that the given hash_type exists in the flat dict
+        returned by get_supported_hashes().
+        """
         supported_hashes = self.get_supported_hashes()
-        for type, hashes in supported_hashes.items():
-            for code, name in hashes.items():
-                if code == hash_type:
-                    valid = True
-                    break
+        return str(hash_type) in supported_hashes
 
-            if valid:
-                break
-
-        return valid
 
     def build_export_password_command_line(self, hashfile, potfile, save_as, contains_usernames, hashtype):
         command = [
