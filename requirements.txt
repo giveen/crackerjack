@@ -1,5 +1,5 @@
 Flask==2.3.3                # upgraded from <2.0.0
-Flask-SQLAlchemy==2.5.1
+Flask-SQLAlchemy==3.1.1      # upgraded from 2.5.1
 Flask-Migrate==4.1.0        # upgraded from 4.0.1
 Flask-Login==0.6.3          # upgraded from 0.6.2
 Flask-Bcrypt==1.0.1
@@ -10,7 +10,7 @@ Flask-Crontab==0.1.2
 packaging
 pywebpush
 MarkupSafe==3.0.3           # upgraded from 2.0.1
-SQLAlchemy==1.4.39          # upgrade to 2.x deferred
+SQLAlchemy==2.0.44           # upgraded from 1.4.54
 Jinja2==3.1.6               # upgraded from 2.11.3
 itsdangerous==2.2.0         # upgraded from 1.1.0
 click==8.3.1                # upgraded from 7.1.2
