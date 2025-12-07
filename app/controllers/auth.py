@@ -4,7 +4,7 @@ from flask import render_template, redirect, url_for, flash, request, session
 from app.lib.models.user import UserModel
 from sqlalchemy import and_, func
 from app.lib.base.provider import Provider
-from werkzeug.urls import url_parse
+from urllib.parse import urlparse
 import urllib
 import time
 
