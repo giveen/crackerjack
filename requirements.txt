@@ -1,18 +1,18 @@
-Flask==2.3.3                # upgraded from <2.0.0
-Flask-SQLAlchemy==3.1.1      # upgraded from 2.5.1
-Flask-Migrate==4.1.0        # upgraded from 4.0.1
-Flask-Login==0.6.3          # upgraded from 0.6.2
+Flask==3.1.2
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
+Flask-Login==0.6.3
 Flask-Bcrypt==1.0.1
-Flask-WTF==1.2.2            # upgraded from 1.2.1
+Flask-WTF==1.2.2
 ldap3==2.9.1                # TODO - Replace with Flask ldap3 Login
-gunicorn==23.0.0            # upgraded from 21.2.0
+gunicorn==23.0.0
 Flask-Crontab==0.1.2
 packaging
 pywebpush
-MarkupSafe==3.0.3           # upgraded from 2.0.1
-SQLAlchemy==2.0.44           # upgraded from 1.4.54
-Jinja2==3.1.6               # upgraded from 2.11.3
-itsdangerous==2.2.0         # upgraded from 1.1.0
-click==8.3.1                # upgraded from 7.1.2
-Werkzeug==2.3.8             # upgraded from 1.0.1
-blinker==1.9.0              # new dependency required by Flask ≥2.3
+MarkupSafe==3.0.3
+SQLAlchemy==2.0.44
+Jinja2==3.1.6
+itsdangerous==2.2.0
+click==8.3.1
+Werkzeug==3.1.4
+blinker==1.9.0
