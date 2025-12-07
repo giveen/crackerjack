@@ -92,7 +92,7 @@ class ShellManager:
         if user_id >= 0:
             conditions = and_(ShellLogModel.user_id == user_id)
 
-        logs = ShellLogModel.query \
+        query = ShellLogModel.query \
             .outerjoin(UserModel, ShellLogModel.user_id == UserModel.id) \
             .add_columns(
                 ShellLogModel.id,
@@ -107,11 +107,10 @@ class ShellManager:
             .order_by(desc(ShellLogModel.id))
 
         if page == 0 and per_page == 0:
-            logs = logs.all()
+            return query.all()
         else:
-            logs = logs.paginate(page, per_page, False)
-
-        return logs
+            # Flask-SQLAlchemy 3.x style pagination
+            return db.paginate(query, page=page, per_page=per_page, error_out=False)
 
 
 if __name__ == "__main__":
