@@ -5,6 +5,9 @@ import subprocess
 import tempfile
 from app.lib.base.hashid import EXAMPLE_HASHES
 
+import inspect
+print("DEBUG manager.py loaded from:", __file__)
+
 class HashcatManager:
     def __init__(self, shell, hashcat_binary, hashid, status_interval=10, force=False, autoid=False):
         self.shell = shell
@@ -15,19 +18,12 @@ class HashcatManager:
         self.autoid = autoid
 
     def get_supported_hashes(self):
-        """
-        Build a nested dictionary of category -> mode -> {name, example}
-        using hashid.py's EXAMPLE_HASHES.
-        """
-        supported = {"General": {}}
+        supported = {}
         for entry in EXAMPLE_HASHES:
             mode = str(entry['mode'])
-            supported["General"][mode] = {
-                "name": entry['name'],
-                "example": entry.get('example_hash', '')
-            }
+            supported[mode] = entry['name']
+        print("DEBUG get_supported_hashes CALLED, sample:", list(supported.items())[:3])
         return supported
-
 
 
     def guess_hashtype(self, user_id, session_id, contains_usernames):
@@ -35,16 +31,12 @@ class HashcatManager:
         Attempt to guess the hash type for the current session.
         Handles both colon-delimited (username:hash) and $format$ style hashes.
         """
-    
         # Retrieve the hash string from your session model or however it's stored
         hash_value = self.get_session_hash(user_id, session_id)
     
         # Defensive split: support username:hash and raw $format$ hashes
         parts = hash_value.split(':', 1)
-        if len(parts) > 1:
-            hash_body = parts[1]
-        else:
-            hash_body = parts[0]
+        hash_body = parts[1] if len(parts) > 1 else parts[0]
     
         # Run auto-detection if enabled, otherwise fall back to hashid
         if self.autoid:
@@ -61,13 +53,13 @@ class HashcatManager:
             'descriptions': {}
         }
     
-        # Map each guess to its description
+        # Map each guess to its description (just the name string)
         for hashtype in results['matches']:
-            description = self.__get_hashtype_description(hashtype, supported_hashes=supported_hashes)
-            if description:
-                results['descriptions'][hashtype] = description
+            description = supported_hashes.get(str(hashtype), "Unknown mode")
+            results['descriptions'][hashtype] = description
     
         return results
+
 
 
                                                                                                                                                                                                     
@@ -165,16 +157,8 @@ class HashcatManager:
         if supported_hashes is None:
             supported_hashes = self.get_supported_hashes()
     
-        hash_type_str = str(hash_type)  # normalize to string
-    
-        for category, modes in supported_hashes.items():
-            info = modes.get(hash_type_str)
-            if info:
-                if isinstance(info, dict):
-                    return info.get('name', 'Unknown mode')
-                return str(info)
-    
-        return "Unknown mode"
+        return supported_hashes.get(str(hash_type), {}).get("name", "Unknown mode")
+
             
 
     def __fix_alphanum_hashes(self, hashes, alphanum_hashes):
@@ -223,27 +207,11 @@ class HashcatManager:
         return False
 
     def compact_hashes(self, hashes):
-        data = {}
-        for category, modes in hashes.items():
-            for code, info in modes.items():
-                # info is a dict: {"name": ..., "example": ...}
-                name = info['name'] if isinstance(info, dict) else str(info)
-                data[code] = category + ' / ' + name
-    
-        # Sort dict by description
-        data = collections.OrderedDict(sorted(data.items(), key=lambda kv: kv[1]))
-        return data
-
-
-    def get_supported_hashes(self):
-        supported = {"General": {}}
-        for entry in EXAMPLE_HASHES:
-            mode = str(entry['mode'])  # normalize to string
-            supported["General"][mode] = {
-                "name": entry['name'],
-                "example": entry.get('example_hash', '')
-            }
-        return supported
+        """
+        Flatten and sort a dict of mode -> name.
+        """
+        data = {code: name for code, name in hashes.items()}
+        return collections.OrderedDict(sorted(data.items(), key=lambda kv: kv[1]))
 
 
 
