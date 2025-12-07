@@ -1,9 +1,9 @@
-> [!CAUTION]
-> This repo is unmaintained, visit https://github.com/sadreck/crackerjack for the latest version.
-
 # CrackerJack
 
-Web Interface for Hashcat by [Context Information Security](https://www.contextis.com/en/)
+Web Interface for Hashcat originally by [Context Information Security](https://www.contextis.com/en/)
+
+Originally developed by [ctxis](https://github.com/ctxis) and later maintained by [sadreck](https://github.com/sadreck).  
+This fork is actively maintained and modernized by Giveen to continue development and ensure compatibility with current Flask, SQLAlchemy, and Hashcat versions.
 
 # Contents
 
@@ -63,7 +63,7 @@ This allows CrackerJack to be future-proof as it ties to the input/output of Has
 
 ## Contribution
 
-As we maintain an internal tracker as well, before contributing please create an issue to discuss before implementing any features/changes.
+Contributions are welcome. Please open an issue to discuss before implementing new features or changes.
 
 # Screenshots
 
