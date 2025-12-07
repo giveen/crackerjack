@@ -1,0 +1,36 @@
+{% extends 'layout/base.html' %}
+
+{% block content %}
+<div class="row mt-5">
+    <div class="col-2"></div>
+    <div class="col">
+        <h2>Universal Hash Extractor (XXXtoJohn)</h2>
+
+        {% if hash|length == 0 %}
+        <form method="post" enctype="multipart/form-data" action="{{ url_for('modules.xxx_to_john_upload') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label for="document">Upload a password-protected file (ZIP, RAR, PDF, SSH, etc.)</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="document" name="document">
+                    <label class="custom-file-label" for="document">Select file to extract hash from</label>
+                </div>
+                <div class="small text-warning">The file is deleted immediately and not stored on the server</div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary btn-block">Upload & Detect</button>
+            </div>
+        </form>
+        {% else %}
+        <p>Detected format: <strong>{{ detected_type }}</strong></p>
+        <p>Extracted hash:</p>
+        <div class="text-monospace">
+            <pre>{{ hash }}</pre>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-2"></div>
+</div>
+{% endblock %}
