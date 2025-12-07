@@ -1,542 +1,633 @@
-import string
+"""
+hashid.py — Auto-generated from hashcat --example-hashes
+"""
+
+import re
+from flask import current_app
+
+EXAMPLE_HASHES = [
+    {'mode': 0, 'name': 'MD5', 'example_hash': '8743b52063cd84097a65d1633f5c74f5'},
+    {'mode': 10, 'name': 'md5($pass.$salt)', 'example_hash': '3d83c8e717ff0e7ecfe187f088d69954:343141'},
+    {'mode': 11, 'name': 'Joomla < 2.5.18', 'example_hash': 'b78f863f2c67410c41e617f724e22f34:89384528665349271307465505333378'},
+    {'mode': 12, 'name': 'PostgreSQL', 'example_hash': '93a8cf6a7d43e3b5bcd2dc6abb3e02c6:27032153220030464358344758762807'},
+    {'mode': 20, 'name': 'md5($salt.$pass)', 'example_hash': '57ab8499d08c59a7211c77f557bf9425:4247'},
+    {'mode': 21, 'name': 'osCommerce, xt:Commerce', 'example_hash': 'e983672a03adcc9767b24584338eb378:00'},
+    {'mode': 22, 'name': 'Juniper NetScreen/SSG (ScreenOS)', 'example_hash': 'nKjiFErqK7TPcZdFZsZMNWPtw4Pv8n:26506173'},
+    {'mode': 23, 'name': 'Skype', 'example_hash': 'd04d74780881019341915c70d914db29:0675841'},
+    {'mode': 24, 'name': 'SolarWinds Serv-U', 'example_hash': 'e983672a03adcc9767b24584338eb378:00'},
+    {'mode': 30, 'name': 'md5(utf16le($pass).$salt)', 'example_hash': '1169500a7dfece72e1f7fc9c9410867a:687430237020'},
+    {'mode': 40, 'name': 'md5($salt.utf16le($pass))', 'example_hash': '23a8a90599fc5d0d15265d4d3b565f6e:58802707'},
+    {'mode': 50, 'name': 'HMAC-MD5 (key = $pass)', 'example_hash': 'e28e4e37e972a945e464b5226053bac0:40'},
+    {'mode': 60, 'name': 'HMAC-MD5 (key = $salt)', 'example_hash': '7f51edecfa6fb401a0b5e63d33fc8c0e:84143'},
+    {'mode': 70, 'name': 'md5(utf16le($pass))', 'example_hash': '2303b15bfa48c74a74758135a0df1201'},
+    {'mode': 100, 'name': 'SHA1', 'example_hash': 'b89eaac7e61417341b710b727768294d0e6a277b'},
+    {'mode': 101, 'name': 'nsldap, SHA-1(Base64), Netscape LDAP SHA', 'example_hash': '{SHA}uJ6qx+YUFzQbcQtyd2gpTQ5qJ3s='},
+    {'mode': 110, 'name': 'sha1($pass.$salt)', 'example_hash': '848952984db93bdd2d0151d4ecca6ea44fcf49e3:30007548152'},
+    {'mode': 111, 'name': 'nsldaps, SSHA-1(Base64), Netscape LDAP SSHA', 'example_hash': '{SSHA}FLzWcQqyle6Mo7NvrwXCMAmRzXQxNjYxMTYzNw=='},
+    {'mode': 112, 'name': 'Oracle S: Type (Oracle 11+)', 'example_hash': '63ec5f6113843f5d229e2d49c068d983a9670d02:57677783202322766743'},
+    {'mode': 120, 'name': 'sha1($salt.$pass)', 'example_hash': 'a428863972744b16afef28e0087fc094b44bb7b1:465727565'},
+    {'mode': 121, 'name': 'SMF (Simple Machines Forum) > v1.1', 'example_hash': 'd27c0a627a45db487af161fcc3a4005d88eb8a1f:25551135'},
+    {'mode': 122, 'name': 'macOS v10.4, macOS v10.5, macOS v10.6', 'example_hash': '86586886b8bd3c379d2e176243a7225e6aae969d293fe9a9'},
+    {'mode': 124, 'name': 'Django (SHA-1)', 'example_hash': 'sha1$fe76b$02d5916550edf7fc8c886f044887f4b1abf9b013'},
+    {'mode': 125, 'name': 'ArubaOS', 'example_hash': '83377286015bcebb857b23b94331e2b316b6ecbe9fbf26c4fc'},
+    {'mode': 130, 'name': 'sha1(utf16le($pass).$salt)', 'example_hash': '0a9e4591f539a77cd3af67bae207d250bc86bac6:23240710432'},
+    {'mode': 131, 'name': 'MSSQL (2000)', 'example_hash': '0x0100778883860000000000000000000000000000000000000000eda3604e067a06f2732b05b9cb90b8a710996939'},
+    {'mode': 132, 'name': 'MSSQL (2005)', 'example_hash': '0x010045083578bf13a6e30ca29c40e540813772754d54a5ffd325'},
+    {'mode': 133, 'name': 'PeopleSoft', 'example_hash': 'uXmFVrdBvv293L9kDR3VnRmx4ZM='},
+    {'mode': 140, 'name': 'sha1($salt.utf16le($pass))', 'example_hash': '03b83421e2aa6d872d1f8dee001dc226ef01722b:818436'},
+    {'mode': 141, 'name': 'Episerver 6.x < .NET 4', 'example_hash': '$episerver$*0*MjEwNA==*ZUgAmuaYTqAvisD0A427FA3oaWU'},
+    {'mode': 150, 'name': 'HMAC-SHA1 (key = $pass)', 'example_hash': '02b256705348a28b1d6c0f063907979f7e0c82f8:10323'},
+    {'mode': 160, 'name': 'HMAC-SHA1 (key = $salt)', 'example_hash': '8d7cb4d4a27a438059bb83a34d1e6cc439669168:2134817'},
+    {'mode': 170, 'name': 'sha1(utf16le($pass))', 'example_hash': 'b9798556b741befdbddcbf640d1dd59d19b1e193'},
+    {'mode': 200, 'name': 'MySQL323', 'example_hash': '7196759210defdc0'},
+    {'mode': 300, 'name': 'MySQL4.1/MySQL5', 'example_hash': 'fcf7c1b8749cf99d88e5f34271d636178fb5d130'},
+    {'mode': 400, 'name': 'phpass', 'example_hash': '$P$946647711V1klyitUYhtB8Yw5DMA/w.'},
+    {'mode': 500, 'name': 'md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)', 'example_hash': '$1$38652870$DUjsu4TTlTsOe/xxZ05uf/'},
+    {'mode': 501, 'name': 'Juniper IVE', 'example_hash': '3u+UR6n8AgABAAAAHxxdXKmiOmUoqKnZlf8lTOhlPYy93EAkbPfs5+49YLFd/B1+omSKbW7DoqNM40/EeVnwJ8kYoXv9zy9D5C5m5A=='},
+    {'mode': 600, 'name': 'BLAKE2b-512', 'example_hash': '$BLAKE2$296c269e70ac5f0095e6fb47693480f0f7b97ccd0307f5c3bfa4df8f5ca5c9308a0e7108e80a0a9c0ebb715e8b7109b072046c6cd5e155b4cfd2f27216283b1e'},
+    {'mode': 610, 'name': 'BLAKE2b-512($pass.$salt)', 'example_hash': '$BLAKE2$41fcd44c789c735c08b43a871b81c8f617ca43918d38aee6cf8291c58a0b00a03115857425e5ff6f044be7a5bec8536b52d6c9992e21cd43cdca8a55bbf1f5c1:1033'},
+    {'mode': 620, 'name': 'BLAKE2b-512($salt.$pass)', 'example_hash': '$BLAKE2$f0325fdfc3f82a014935442f7adbc069d4636d67276a85b09f8de368f122cf5195a0b780d7fee709fbf1dcd02ddcb581df84508cf1fb0f3393af1be0565491c6:3301'},
+    {'mode': 900, 'name': 'MD4', 'example_hash': 'afe04867ec7a3845145579a95f72eca7'},
+    {'mode': 1000, 'name': 'NTLM', 'example_hash': 'b4b9b02e6f09a9bd760f388b67351e2b'},
+    {'mode': 1100, 'name': 'Domain Cached Credentials (DCC), MS Cache', 'example_hash': 'c896b3c6963e03c86ade3a38370bbb09:54161084332'},
+    {'mode': 1300, 'name': 'SHA2-224', 'example_hash': 'e4fa1555ad877bf0ec455483371867200eee89550a93eff2f95a6198'},
+    {'mode': 1310, 'name': 'sha224($pass.$salt)', 'example_hash': '0cf361904f4b0234cf4ade8496d8c11c04e5982db967603e82f22b2f:89452466460220844541730694146873525188525677'},
+    {'mode': 1320, 'name': 'sha224($salt.$pass)', 'example_hash': '4258a61d3d0d5a5b6796f0ab02d081e998fe657d55d22091d3b51409:36669207'},
+    {'mode': 1400, 'name': 'SHA2-256', 'example_hash': '127e6fbfe24a750e72930c220a8e138275656b8e5d8f48a98c3c92df2caba935'},
+    {'mode': 1410, 'name': 'sha256($pass.$salt)', 'example_hash': '5bb7456f43e3610363f68ad6de82b8b96f3fc9ad24e9d1f1f8d8bd89638db7c0:12480864321'},
+    {'mode': 1411, 'name': 'SSHA-256(Base64), LDAP {SSHA256}', 'example_hash': '{SSHA256}L5Wk0zPY2lmoR5pH20zngq37KkxFwgTquEhx95rxfVk3Ng=='},
+    {'mode': 1420, 'name': 'sha256($salt.$pass)', 'example_hash': '816d1ded1d621873595048912ea3405d9d42afd3b57665d9f5a2db4d89720854:36176620'},
+    {'mode': 1421, 'name': 'hMailServer', 'example_hash': '8fe7ca27a17adc337cd892b1d959b4e487b8f0ef09e32214f44fb1b07e461c532e9ec3'},
+    {'mode': 1430, 'name': 'sha256(utf16le($pass).$salt)', 'example_hash': 'b2d0db162e30dfef1bfd606689a3acbc213c47ef3fd11968394191886075249d:32002'},
+    {'mode': 1440, 'name': 'sha256($salt.utf16le($pass))', 'example_hash': '84ebe1bc3d59919a8c4f9337d66bd163661586c828b24b8067a27a6dc4228c64:05662'},
+    {'mode': 1441, 'name': 'Episerver 6.x >= .NET 4', 'example_hash': '$episerver$*1*NDg1NTIz*8BFCg/YJBAuZs/wjbH3OWKe69BLr5Lao26ybpnD48Zk'},
+    {'mode': 1450, 'name': 'HMAC-SHA256 (key = $pass)', 'example_hash': 'b435ffbacea34d5eb0dbc4d69a92f0152f2cf4cd364d34c2ece322ca22d8b334:21217'},
+    {'mode': 1460, 'name': 'HMAC-SHA256 (key = $salt)', 'example_hash': '8b9472281c36c3a693703de0e0f1ffab8fc0ecdd3bc5ead04c76dd74ef431e49:70108387805'},
+    {'mode': 1470, 'name': 'sha256(utf16le($pass))', 'example_hash': '9e9283e633f4a7a42d3abc93701155be8afe5660da24c8758e7d3533e2f2dc82'},
+    {'mode': 1500, 'name': 'descrypt, DES (Unix), Traditional DES', 'example_hash': '24leDr0hHfb3A'},
+    {'mode': 1600, 'name': 'Apache $apr1$ MD5, md5apr1, MD5 (APR)', 'example_hash': '$apr1$62722340$zGjeAwVP2KwY6MtumUI1N/'},
+    {'mode': 1700, 'name': 'SHA2-512', 'example_hash': '82a9dda829eb7f8ffe9fbe49e45d47d2dad9664fbb7adf72492e3c81ebd3e29134d9bc12212bf83c6840f10e8246b9db54a4859b7ccd0123d86e5872c1e5082f'},
+    {'mode': 1710, 'name': 'sha512($pass.$salt)', 'example_hash': '3f749c84d00c6f94a6651b5c195c71dacae08f3cea6fed760232856cef701f7bf60d7f38a587f69f159d4e4cbe00435aeb9c8c0a4927b252d76a744e16e87e91:388026522082'},
+    {'mode': 1711, 'name': 'SSHA-512(Base64), LDAP {SSHA512}', 'example_hash': '{SSHA512}Bz8w5q6qEtB1Nnc8b1jfTvTXVTwohWag33oghQGOtLChnkZTw/cuJaHQlLJEI3AWKZGCRyLA6Phujdxo+is7AjA2MDcyNjY1Mg=='},
+    {'mode': 1720, 'name': 'sha512($salt.$pass)', 'example_hash': 'efc5dd0e4145970917abdc311e1d4e23ba0afa9426d960cb28569f4d585cb031af5c936f57fbcb0a08368a1b302573cf582100d40bd7c632f3d8aecd1a1a8eb1:812'},
+    {'mode': 1722, 'name': 'macOS v10.7', 'example_hash': '07543781b07e905f6f947db8ae305c248b9e12f509b41097e852e2f450e824790e677ea7397b8a9a552b1c19ecf6a6e1dd3844fa5ee5db23976962859676f7d2fb85ca94'},
+    {'mode': 1730, 'name': 'sha512(utf16le($pass).$salt)', 'example_hash': 'eefb67342d62a5d8ac84e8ae89d0f157f03749bd0427c80637003a4760feefdb36cbe11ba35ab2015b3691e2e83803178c986aa85f29e6f56938b469a31ccd7a:6576666'},
+    {'mode': 1731, 'name': 'MSSQL (2012, 2014)', 'example_hash': '0x02003788006711b2e74e7d8cb4be96b1d187c962c5591a02d5a6ae81b3a4a094b26b7877958b26733e45016d929a756ed30d0a5ee65d3ce1970f9b7bf946e705c595f07625b1'},
+    {'mode': 1740, 'name': 'sha512($salt.utf16le($pass))', 'example_hash': 'ce77bf8a8ca9b9cf0ed67edde58ed7fafd4542ce1378fc8bd87b05656ebf92e5711517d5930c18de93a71990e77e1037423e5b64c2f293be7d859d7b6921622e:1512373'},
+    {'mode': 1750, 'name': 'HMAC-SHA512 (key = $pass)', 'example_hash': '138c00f17a1a0363f274817c91118f019aff09f937bfdaea844280a0c0e7811267cc4735d967d8640eed1218268c1c4a76fec8f7aa551491b353829f3a654270:885142'},
+    {'mode': 1760, 'name': 'HMAC-SHA512 (key = $salt)', 'example_hash': '7d02921299935179d509e6dd4f3d0f2944e3451ea9de3af16baead6a7297e5653577d2473a0fff743d9fe78a89bd49296114319989dc7e7870fc7f62bc96accb:114'},
+    {'mode': 1770, 'name': 'sha512(utf16le($pass))', 'example_hash': '79bba09eb9354412d0f2c037c22a777b8bf549ab12d49b77d5b25faa839e4378d8f6fa11aceb6d9413977ae5ad5d011568bad2de4f998d75fd4ce916eda83697'},
+    {'mode': 1800, 'name': 'sha512crypt $6$, SHA512 (Unix)', 'example_hash': '$6$72820166$U4DVzpcYxgw7MVVDGGvB2/H5lRistD5.Ah4upwENR5UtffLR4X4SxSzfREv8z6wVl0jRFX40/KnYVvK4829kD1'},
+    {'mode': 2000, 'name': 'STDOUT', 'example_hash': 'hashcat'},
+    {'mode': 2100, 'name': 'Domain Cached Credentials 2 (DCC2), MS Cache 2', 'example_hash': '$DCC2$10240#6848#e2829c8af2232fa53797e2f0e35e4626'},
+    {'mode': 2400, 'name': 'Cisco-PIX MD5', 'example_hash': 'dRRVnUmUHXOTt9nk'},
+    {'mode': 2410, 'name': 'Cisco-ASA MD5', 'example_hash': 'YjDBNr.A0AN7DA8s:4684'},
+    {'mode': 2500, 'name': 'WPA-EAPOL-PBKDF2', 'example_hash': '48435058040000000002353800000000000000000000000...00000 [Truncated, use --mach for full length]'},
+    {'mode': 2501, 'name': 'WPA-EAPOL-PMK', 'example_hash': '48435058040000000002353800000000000000000000000...00000 [Truncated, use --mach for full length]'},
+    {'mode': 2600, 'name': 'md5(md5($pass))', 'example_hash': 'a936af92b0ae20b1ff6c3347a72e5fbe'},
+    {'mode': 2611, 'name': 'vBulletin < v3.8.5', 'example_hash': '28f9975808ae2bdc5847b1cda26033ea:308'},
+    {'mode': 2612, 'name': 'PHPS', 'example_hash': '$PHPS$30353031383437363132$f02b0b2f25e5754edb04522c346ba243'},
+    {'mode': 2630, 'name': 'md5(md5($pass.$salt))', 'example_hash': '0127eecea3120e34c8934ba3b72a390a:0'},
+    {'mode': 2711, 'name': 'vBulletin >= v3.8.5', 'example_hash': '0844fbb2fdeda31884a7a45ec2010bb6:324410183853308365427804872426'},
+    {'mode': 2811, 'name': 'MyBB 1.2+, IPB2+ (Invision Power Board)', 'example_hash': '022f7e02b3314f7d0968f73c00ba759f:67588'},
+    {'mode': 3000, 'name': 'LM', 'example_hash': '299bd128c1101fd6'},
+    {'mode': 3100, 'name': 'Oracle H: Type (Oracle 7+)', 'example_hash': '792FCB0AE31D8489:7284616727'},
+    {'mode': 3200, 'name': 'bcrypt $2*$, Blowfish (Unix)', 'example_hash': '$2a$05$MBCzKhG1KhezLh.0LRa0Kuw12nLJtpHy6DIaU.JAnqJUDYspHC.Ou'},
+    {'mode': 3500, 'name': 'md5(md5(md5($pass)))', 'example_hash': '9882d0778518b095917eb589f6998441'},
+    {'mode': 3610, 'name': 'md5(md5(md5($pass)).$salt)', 'example_hash': 'a0ab79f9e2b5a4434d2da61673b56362:1234'},
+    {'mode': 3710, 'name': 'md5($salt.md5($pass))', 'example_hash': 'a3aa0ae2b4a102a9974cdf40edeabee0:242812778074'},
+    {'mode': 3711, 'name': 'MediaWiki B type', 'example_hash': '$B$2152187716$8c8b39c3602b194eeeb6cac78eea2742'},
+    {'mode': 3730, 'name': 'md5($salt1.strtoupper(md5($salt2.$pass)))', 'example_hash': '0e1484eb061b8e9cfd81868bba1dc4a0:229381927:182719643'},
+    {'mode': 3800, 'name': 'md5($salt.$pass.$salt)', 'example_hash': '78274b1105fb8a7c415b43ffe35ec4a9:6'},
+    {'mode': 3910, 'name': 'md5(md5($pass).md5($salt))', 'example_hash': 'd8281daba5da597503d12fe31808b4a7:283053'},
+    {'mode': 4010, 'name': 'md5($salt.md5($salt.$pass))', 'example_hash': '82422514daaa8253be0aa43f3e263af5:7530326651137'},
+    {'mode': 4110, 'name': 'md5($salt.md5($pass.$salt))', 'example_hash': '45b1005214e2d9472a7ad681578b2438:64268771004'},
+    {'mode': 4300, 'name': 'md5(strtoupper(md5($pass)))', 'example_hash': 'b8c385461bb9f9d733d3af832cf60b27'},
+    {'mode': 4400, 'name': 'md5(sha1($pass))', 'example_hash': '288496df99b33f8f75a7ce4837d1b480'},
+    {'mode': 4410, 'name': 'md5(sha1($pass).$salt)', 'example_hash': 'bc8319c0220bff8a0d7f5d703114a725:34659348756345251'},
+    {'mode': 4420, 'name': 'md5(sha1($pass.$salt))', 'example_hash': '34ebbba3e5c98f6253c160eae53da092:6224378456121050285'},
+    {'mode': 4430, 'name': 'md5(sha1($salt.$pass))', 'example_hash': 'df0e9ede5b6c7d1f1b47199f86029002:59132809201799180722359939692710461886'},
+    {'mode': 4500, 'name': 'sha1(sha1($pass))', 'example_hash': '3db9184f5da4e463832b086211af8d2314919951'},
+    {'mode': 4510, 'name': 'sha1(sha1($pass).$salt)', 'example_hash': '9138d472fce6fe50e2a32da4eec4ecdc8860f4d5:hashcat1'},
+    {'mode': 4520, 'name': 'sha1($salt.sha1($pass))', 'example_hash': '59b80a295392eedb677ca377ad7bf3487928df96:136472340404074825440760227553028141804855170538'},
+    {'mode': 4521, 'name': 'Redmine', 'example_hash': 'c18e826af2a78c7b9b7261452613233417e65817:28246535720688452723483475753333'},
+    {'mode': 4522, 'name': 'PunBB', 'example_hash': '9038129c474caa3f0de56f38db84033d0fe1d4b8:365563602032'},
+    {'mode': 4700, 'name': 'sha1(md5($pass))', 'example_hash': '92d85978d884eb1d99a51652b1139c8279fa8663'},
+    {'mode': 4710, 'name': 'sha1(md5($pass).$salt)', 'example_hash': '53c724b7f34f09787ed3f1b316215fc35c789504:hashcat1'},
+    {'mode': 4711, 'name': 'Huawei sha1(md5($pass).$salt)', 'example_hash': '53c724b7f34f09787ed3f1b316215fc35c789504:hashcat1'},
+    {'mode': 4800, 'name': 'iSCSI CHAP authentication, MD5(CHAP)', 'example_hash': 'aa4aaa1d52319525023c06a4873f4c51:35343534373533343633383832343736:dc'},
+    {'mode': 4900, 'name': 'sha1($salt.$pass.$salt)', 'example_hash': '75d280ca9a0c2ee18729603104ead576d9ca6285:347070'},
+    {'mode': 5000, 'name': 'sha1(sha1($salt.$pass.$salt))', 'example_hash': '05ac0c544060af48f993f9c3cdf2fc03937ea35b:232725102020'},
+    {'mode': 5100, 'name': 'Half MD5', 'example_hash': '8743b52063cd8409'},
+    {'mode': 5200, 'name': 'Password Safe v3', 'example_hash': '50575333e4e2a590a5e5c8269f57ec04a8a1c0c03da55b3...939d1 [Truncated, use --mach for full length]'},
+    {'mode': 5300, 'name': 'IKE-PSK MD5', 'example_hash': '50503326cac6e4bd892b8257805b5a59a285f464ad3f63d...e3d30 [Truncated, use --mach for full length]'},
+    {'mode': 5400, 'name': 'IKE-PSK SHA1', 'example_hash': '266b43c54636c062b6696b71f24b30999c98bd4c3ba57e2...45ea6 [Truncated, use --mach for full length]'},
+    {'mode': 5500, 'name': 'NetNTLMv1 / NetNTLMv1+ESS', 'example_hash': '::5V4T:ada06359242920a500000000000000000000000000000000:0556d5297b5daa70eaffde82ef99293a3f3bb59b7c9704ea:9c23f6c094853920'},
+    {'mode': 5600, 'name': 'NetNTLMv2', 'example_hash': '0UL5G37JOI0SX::6VB1IS0KA74:ebe1afa18b7fbfa6:aab8bf8675658dd2a939458a1077ba08:010100000000000031c8aa092510945398b9f7b7dde1a9fb00000000f7876f2b04b700'},
+    {'mode': 5700, 'name': 'Cisco-IOS type 4 (SHA256)', 'example_hash': '2btjjy78REtmYkkW0csHUbJZOstRXoWdX1mGrmmfeHI'},
+    {'mode': 5720, 'name': 'Cisco-ISE Hashed Password (SHA256)', 'example_hash': '465865d4226c4d9696e601f2c99b25ae2c194ec01806bafc93933331acfc1a60e8bdcca8be9fa245a5fa16029bb52480915746f47d1c539d01da7ec6f37468d1'},
+    {'mode': 5800, 'name': 'Samsung Android Password/PIN', 'example_hash': '3edde1eb9e6679ccbc1ff3c417e8a475a2d2e279:7724368582277760'},
+    {'mode': 6000, 'name': 'RIPEMD-160', 'example_hash': '012cb9b334ec1aeb71a9c8ce85586082467f7eb6'},
+    {'mode': 6050, 'name': 'HMAC-RIPEMD160 (key = $pass)', 'example_hash': '4f5edca01734e03dd7e735362625a76e6bcb61b2:52355614946067'},
+    {'mode': 6060, 'name': 'HMAC-RIPEMD160 (key = $salt)', 'example_hash': '34d8e55a2ae1e9549a291326ce2f0a8dcdc75c5c:08523202563542341'},
+    {'mode': 6100, 'name': 'Whirlpool', 'example_hash': '7ca8eaaaa15eaa4c038b4c47b9313e92da827c06940e69947f85bc0fbef3eb8fd254da220ad9e208b6b28f6bb9be31dd760f1fdb26112d83f87d96b416a4d258'},
+    {'mode': 6211, 'name': 'TrueCrypt RIPEMD160 + XTS 512 bit (legacy)', 'example_hash': '87914967f14737a67fb460f27b8aeb81de2b41bf2740b3d...21e18 [Truncated, use --mach for full length]'},
+    {'mode': 6212, 'name': 'TrueCrypt RIPEMD160 + XTS 1024 bit (legacy)', 'example_hash': 'd6e1644acd373e6fdb8ccaaeab0c400d22eaa0b02e2a664...2415b [Truncated, use --mach for full length]'},
+    {'mode': 6213, 'name': 'TrueCrypt RIPEMD160 + XTS 1536 bit (legacy)', 'example_hash': '3916e924d246e5ceb17b140211fff57b67150b3dee53fa4...1037e [Truncated, use --mach for full length]'},
+    {'mode': 6221, 'name': 'TrueCrypt SHA512 + XTS 512 bit (legacy)', 'example_hash': '5ebff6b4050aaa3374f9946166a9c4134dd3ec0df1176da...938f6 [Truncated, use --mach for full length]'},
+    {'mode': 6222, 'name': 'TrueCrypt SHA512 + XTS 1024 bit (legacy)', 'example_hash': '9f207bec0eded18a1b2e324d4f05d2f33f0bd1aeb43db65...7caa9 [Truncated, use --mach for full length]'},
+    {'mode': 6223, 'name': 'TrueCrypt SHA512 + XTS 1536 bit (legacy)', 'example_hash': '721a7f40d2b88de8e11f1a203b04ffa97a1f5671623c678...99d2f [Truncated, use --mach for full length]'},
+    {'mode': 6231, 'name': 'TrueCrypt Whirlpool + XTS 512 bit (legacy)', 'example_hash': 'cf53d4153414b63285e701e52c2d99e148c6ccc4508132f...2c164 [Truncated, use --mach for full length]'},
+    {'mode': 6232, 'name': 'TrueCrypt Whirlpool + XTS 1024 bit (legacy)', 'example_hash': 'e9e503972b72dee996b0bfced2df003a54b42399e358652...e7d31 [Truncated, use --mach for full length]'},
+    {'mode': 6233, 'name': 'TrueCrypt Whirlpool + XTS 1536 bit (legacy)', 'example_hash': 'de7d6725cc4c910a7e96307df69d41335e64d17b4425ca5...6bde7 [Truncated, use --mach for full length]'},
+    {'mode': 6241, 'name': 'TrueCrypt RIPEMD160 + XTS 512 bit + boot-mode (legacy)', 'example_hash': '2b5da9924119fde5270f712ba3c3e4974460416e8465f22...7da8c [Truncated, use --mach for full length]'},
+    {'mode': 6242, 'name': 'TrueCrypt RIPEMD160 + XTS 1024 bit + boot-mode (legacy)', 'example_hash': 'debcc3e74a7b2acb4c7eaa4ac86fd6431da1d9579f4f76f...db1c7 [Truncated, use --mach for full length]'},
+    {'mode': 6243, 'name': 'TrueCrypt RIPEMD160 + XTS 1536 bit + boot-mode (legacy)', 'example_hash': '5e6628907291b0b74a4f43a23fb0693acb71c4379c3a3cc...58ea4 [Truncated, use --mach for full length]'},
+    {'mode': 6300, 'name': 'AIX {smd5}', 'example_hash': '{smd5}17800721$WkGka7tXcrfpUQS6WOQyw/'},
+    {'mode': 6400, 'name': 'AIX {ssha256}', 'example_hash': '{ssha256}06$2715084824104660$1s/s4RZWEcvZ5VuWPXWGUfwSoG07eVSVce8F6ANJ.g4'},
+    {'mode': 6500, 'name': 'AIX {ssha512}', 'example_hash': '{ssha512}06$4653718755856803$O04nVHL7iU9Jguy/B3Yow.veBM52irn.038Y/Ln6AMy/BG8wbU6ozSP8/W9KDZPUbhdsbl1lf8px.vKJS1S/..'},
+    {'mode': 6600, 'name': '1Password, agilekeychain', 'example_hash': '1000:d61a54f1efdfcf57:0000000000000000000000000...c47e9 [Truncated, use --mach for full length]'},
+    {'mode': 6700, 'name': 'AIX {ssha1}', 'example_hash': '{ssha1}06$5586485655847243$V5f1Ff1y4dr7AWeVSSdv6N52..Y'},
+    {'mode': 6800, 'name': 'LastPass + LastPass sniffed', 'example_hash': '02eb97e869e0ddc7dc760fc633b4b54d:100100:pmix@trash-mail.com:9b071db7b8e265d4cadd3eb65ac0864a'},
+    {'mode': 6900, 'name': 'GOST R 34.11-94', 'example_hash': 'df226c2c6dcb1d995c0299a33a084b201544293c31fc3d279530121d36bbcea9'},
+    {'mode': 7000, 'name': 'FortiGate (FortiOS)', 'example_hash': 'AK1FCIhM0IUIQVFJgcDFwLCMi7GppdwtRzMyDpFOFxdpH8='},
+    {'mode': 7100, 'name': 'macOS v10.8+ (PBKDF2-SHA512)', 'example_hash': '$ml$1024$24843807311321316245062714671621235760...af958 [Truncated, use --mach for full length]'},
+    {'mode': 7200, 'name': 'GRUB 2', 'example_hash': 'grub.pbkdf2.sha512.1024.03510507805003756325721...2425b [Truncated, use --mach for full length]'},
+    {'mode': 7300, 'name': 'IPMI2 RAKP HMAC-SHA1', 'example_hash': '34373437353333363838313532323234333833333032363...ce5a2 [Truncated, use --mach for full length]'},
+    {'mode': 7350, 'name': 'IPMI2 RAKP HMAC-MD5', 'example_hash': '08b017f3628b9835c748521e412429c9:f3450000df540000cdd981b0b3441be8774a61e69321291891a29a0c5fdac3f06194bd2c29fa5246000000000000000000000000000000001400'},
+    {'mode': 7400, 'name': 'sha256crypt $5$, SHA256 (Unix)', 'example_hash': '$5$7777657035274252$XftMj84MW.New1/ViLY5V4CM4Y7EBvfETaZsCW9vcJ8'},
+    {'mode': 7401, 'name': 'MySQL $A$ (sha256crypt)', 'example_hash': '$mysql$A$005*F9CC98CE08892924F50A213B6BC571A2C11778C5*625479393559393965414D45316477456B484F41316E64484742577A2E3162785353526B7554584647562F'},
+    {'mode': 7500, 'name': 'Kerberos 5, etype 23, AS-REQ Pre-Auth', 'example_hash': '$krb5pa$23$user$realm$salt$5cbb0c882a2b26956e81644edbdb746326f4f5f0e947144fb3095dffe4b4b03e854fc1d631323632303636373330383333353630'},
+    {'mode': 7700, 'name': 'SAP CODVN B (BCODE)', 'example_hash': '027642760180$77EC38630C08DF8D'},
+    {'mode': 7701, 'name': 'SAP CODVN B (BCODE) from RFC_READ_TABLE', 'example_hash': '027642760180$77EC386300000000'},
+    {'mode': 7800, 'name': 'SAP CODVN F/G (PASSCODE)', 'example_hash': '604020408266$32837BA7B97672BA4E5AC74767A4E6E1AE802651'},
+    {'mode': 7801, 'name': 'SAP CODVN F/G (PASSCODE) from RFC_READ_TABLE', 'example_hash': '604020408266$32837BA7B97672BA4E5A00000000000000000000'},
+    {'mode': 7900, 'name': 'Drupal7', 'example_hash': '$S$C20340258nzjDWpoQthrdNTR02f0pmev0K/5/Nx80WSkOQcPEQRh'},
+    {'mode': 8000, 'name': 'Sybase ASE', 'example_hash': '0xc0071808773188715731b69bd4e310b4129913aaf657356c5bdf3c46f249ed42477b5c74af6eaac4d15a'},
+    {'mode': 8100, 'name': 'Citrix NetScaler (SHA1)', 'example_hash': '1130725275da09ca13254957f2314a639818d44c37ef6d558'},
+    {'mode': 8200, 'name': '1Password, cloudkeychain', 'example_hash': '9b6933f4a1f65baf02737545efc8c1caee4c7a5a82ce3ab...8fc26 [Truncated, use --mach for full length]'},
+    {'mode': 8300, 'name': 'DNSSEC (NSEC3)', 'example_hash': 'pi6a89u8tca930h8mvolklmesefc5gmn:.fnmlbsik.net:35537886:1'},
+    {'mode': 8400, 'name': 'WBB3 (Woltlab Burning Board)', 'example_hash': '7f8d1951fe48ae3266980c2979c141f60e4415e5:5037864764153886517871426607441768004150'},
+    {'mode': 8500, 'name': 'RACF', 'example_hash': '$racf$*8481*6095E8FCA59F8E3E'},
+    {'mode': 8501, 'name': 'AS/400 DES', 'example_hash': '$as400$des$*OPEN3*EC76FC0DEF5B0A83'},
+    {'mode': 8600, 'name': 'Lotus Notes/Domino 5', 'example_hash': '3dd2e1e5ac03e230243d58b8c5ada076'},
+    {'mode': 8700, 'name': 'Lotus Notes/Domino 6', 'example_hash': '(GDJ0nDZI8l8RJzlRbemg)'},
+    {'mode': 8800, 'name': 'Android FDE <= 4.3', 'example_hash': '$fde$16$ca56e82e7b5a9c2fc1e3b5a7d671c2f9$16$7c1...2561f [Truncated, use --mach for full length]'},
+    {'mode': 8900, 'name': 'scrypt', 'example_hash': 'SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c='},
+    {'mode': 9000, 'name': 'Password Safe v2', 'example_hash': '0a3f352686e5eb5be173e668a4fff5cd5df420927e1da2d...14ebb [Truncated, use --mach for full length]'},
+    {'mode': 9100, 'name': 'Lotus Notes/Domino 8', 'example_hash': '(HC34tD3KtDp4oCZWmCJ4qC30mC30mC3KmC30mCcA5ovrMLH9M)'},
+    {'mode': 9200, 'name': 'Cisco-IOS $8$ (PBKDF2-SHA256)', 'example_hash': '$8$84486783037343$pYNyVrtyMalQrZLxRi7ZLQS1Fl.jkYCgASUi5P8JNb2'},
+    {'mode': 9300, 'name': 'Cisco-IOS $9$ (scrypt)', 'example_hash': '$9$87023684531115$phio0TBQwaO7KZ8toQFyGFyDvyOzidaypRWN0uKX0hU'},
+    {'mode': 9400, 'name': 'MS Office 2007', 'example_hash': '$office$*2007*20*128*16*18410007331073848057180885845227*944c70a5ee6e5ab2a6a86ff54b5f621a*e6650f1f2630c27fd8fc0f5e56e2e01f99784b9f'},
+    {'mode': 9500, 'name': 'MS Office 2010', 'example_hash': '$office$*2010*100000*128*16*34170046140146368675746031258762*de5bc114991bb3a5679a6e24320bdb09*1b72a4ddffba3dcd5395f6a5ff75b126cb832b733c298e86162028ca47a235a9'},
+    {'mode': 9600, 'name': 'MS Office 2013', 'example_hash': '$office$*2013*100000*256*16*67805436882475302087847656644837*0c392d3b9ca889656d1e615c54f9f3c9*612b79e33b96322c3253fc8a0f314463cd76bc4efe1352f7efffca0f374f7e4b'},
+    {'mode': 9700, 'name': 'MS Office <= 2003 $0/$1, MD5 + RC4', 'example_hash': '$oldoffice$0*55045061647456688860411218030058*e7e24d163fbd743992d4b8892bf3f2f7*493410dbc832557d3fe1870ace8397e2'},
+    {'mode': 9710, 'name': 'MS Office <= 2003 $0/$1, MD5 + RC4, collider #1', 'example_hash': '$oldoffice$0*55045061647456688860411218030058*e7e24d163fbd743992d4b8892bf3f2f7*493410dbc832557d3fe1870ace8397e2'},
+    {'mode': 9720, 'name': 'MS Office <= 2003 $0/$1, MD5 + RC4, collider #2', 'example_hash': '$oldoffice$0*55045061647456688860411218030058*e7e24d163fbd743992d4b8892bf3f2f7*493410dbc832557d3fe1870ace8397e2:91b2e062b9'},
+    {'mode': 9800, 'name': 'MS Office <= 2003 $3/$4, SHA1 + RC4', 'example_hash': '$oldoffice$3*83328705222323020515404251156288*2855956a165ff6511bc7f4cd77b9e101*941861655e73a09c40f7b1e9dfd0c256ed285acd'},
+    {'mode': 9810, 'name': 'MS Office <= 2003 $3, SHA1 + RC4, collider #1', 'example_hash': '$oldoffice$3*83328705222323020515404251156288*2855956a165ff6511bc7f4cd77b9e101*941861655e73a09c40f7b1e9dfd0c256ed285acd'},
+    {'mode': 9820, 'name': 'MS Office <= 2003 $3, SHA1 + RC4, collider #2', 'example_hash': '$oldoffice$3*83328705222323020515404251156288*2855956a165ff6511bc7f4cd77b9e101*941861655e73a09c40f7b1e9dfd0c256ed285acd:b8f63619ca'},
+    {'mode': 9900, 'name': 'Radmin2', 'example_hash': '22527bee5c29ce95373c4e0f359f079b'},
+    {'mode': 10000, 'name': 'Django (PBKDF2-SHA256)', 'example_hash': 'pbkdf2_sha256$10000$1135411628$bFYX62rfJobJ07VwrUMXfuffLfj2RDM2G6/BrTrUWkE='},
+    {'mode': 10100, 'name': 'SipHash', 'example_hash': '583e6f51e52ba296:2:4:47356410265714355482333327356688'},
+    {'mode': 10200, 'name': 'CRAM-MD5', 'example_hash': '$cram_md5$MTI=$dXNlciBiOGYwNjk5MTE0YjA1Nzg4OTIyM2RmMDg0ZjgyMjQ2Zg=='},
+    {'mode': 10300, 'name': 'SAP CODVN H (PWDSALTEDHASH) iSSHA-1', 'example_hash': '{x-issha, 1024}BnjXMqcNTwa3BzdnUOf1iAu6dw02NzU4MzE2MTA='},
+    {'mode': 10400, 'name': 'PDF 1.1 - 1.3 (Acrobat 2 - 4)', 'example_hash': '$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000'},
+    {'mode': 10410, 'name': 'PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #1', 'example_hash': '$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000'},
+    {'mode': 10420, 'name': 'PDF 1.1 - 1.3 (Acrobat 2 - 4), collider #2', 'example_hash': '$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000:6a8aedccb7'},
+    {'mode': 10500, 'name': 'PDF 1.4 - 1.6 (Acrobat 5 - 8)', 'example_hash': '$pdf$2*3*128*-4*1*16*62888255846156252261477183186121*32*6879919b1afd520bd3b7dbcc0868a0a500000000000000000000000000000000*32*0000000000000000000000000000000000000000000000000000000000000000'},
+    {'mode': 10510, 'name': 'PDF 1.3 - 1.6 (Acrobat 4 - 8) w/ RC4-40', 'example_hash': '$pdf$1*3*40*-4*1*16*5e1f73575e1f73575e1f73575e1f7357*32*c0be424bef466277092f2a1ba0fbe506ebabe5c01db100dedc0ffeebabe5c01d*32*0ff1cedeadce110ff1cedeadce110ff1cedeadce110ff1cedeadce11babebabe'},
+    {'mode': 10600, 'name': 'PDF 1.7 Level 3 (Acrobat 9)', 'example_hash': '$pdf$5*5*256*-1028*1*16*28562274676426582441147...00000 [Truncated, use --mach for full length]'},
+    {'mode': 10700, 'name': 'PDF 1.7 Level 8 (Acrobat 10 - 11)', 'example_hash': '$pdf$5*6*256*-1028*1*16*62137640825124540503886...00000 [Truncated, use --mach for full length]'},
+    {'mode': 10800, 'name': 'SHA2-384', 'example_hash': '07371af1ca1fca7c6941d2399f3610f1e392c56c6d73fddffe38f18c430a2817028dae1ef09ac683b62148a2c8757f42'},
+    {'mode': 10810, 'name': 'sha384($pass.$salt)', 'example_hash': 'ca1c843a7a336234baf9db2e10bc38824ce523402fbd7741286b1602bdf6cb869a45289bb9fb706bd404b9f3842ff729:2746460797049820734631508'},
+    {'mode': 10820, 'name': 'sha384($salt.$pass)', 'example_hash': '63f63d7f82d4a4cb6b9ff37a6bc7c5ec39faaf9c9078551f5cbf7960e76ded87b643d37ac53c45bc544325e7ff83a1f2:93362'},
+    {'mode': 10830, 'name': 'sha384(utf16le($pass).$salt)', 'example_hash': '3516a589d2ed4071bf5e36f22e11212b3ad9050b9094b23067103d51e99dcb25c4dc397dba8034fed11a8184acfbb699:577730514588712'},
+    {'mode': 10840, 'name': 'sha384($salt.utf16le($pass))', 'example_hash': '316e93ea8e04de3e5a909c53d36923a31a16c1b9e89b44201d6082f87ca49c5bca53cad65f685207db3ea2ccc7ca40f8:700067651'},
+    {'mode': 10870, 'name': 'sha384(utf16le($pass))', 'example_hash': '48e61d68e93027fae35d405ed16cd01b6f1ae66267833b4a7aa1759e45bab9bba652da2e4c07c155a3d8cf1d81f3a7e8'},
+    {'mode': 10900, 'name': 'PBKDF2-HMAC-SHA256', 'example_hash': 'sha256:1000:NjI3MDM3:vVfavLQL9ZWjg8BUMq6/FB8FtpkIGWYk'},
+    {'mode': 10901, 'name': 'RedHat 389-DS LDAP (PBKDF2-HMAC-SHA256)', 'example_hash': '{PBKDF2_SHA256}AAAgADkxMjM2NTIzMzgzMjQ3MjI4MDAw...cJd5q [Truncated, use --mach for full length]'},
+    {'mode': 11000, 'name': 'PrestaShop', 'example_hash': 'f22cade043e7214200206dbffca49fd9:27167508161455764247627144160038845437138252877014827848'},
+    {'mode': 11100, 'name': 'PostgreSQL CRAM (MD5)', 'example_hash': '$postgres$postgres*74402844*4e7fabaaf34d780c4a5822d28ee1c83e'},
+    {'mode': 11200, 'name': 'MySQL CRAM (SHA1)', 'example_hash': '$mysqlna$2576670568531371763643101056213751754328*5e4be686a3149a12847caa9898247dcc05739601'},
+    {'mode': 11300, 'name': 'Bitcoin/Litecoin wallet.dat', 'example_hash': '$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4...33388 [Truncated, use --mach for full length]'},
+    {'mode': 11400, 'name': 'SIP digest authentication (MD5)', 'example_hash': '$sip$*72087*1215344588738747***342210558720*737232616*1215344588738747*8867133055*65600****MD5*e9980869221f9d1182c83b0d5e56a7db'},
+    {'mode': 11500, 'name': 'CRC32', 'example_hash': 'c762de4a:00000000'},
+    {'mode': 11600, 'name': '7-Zip', 'example_hash': '$7z$0$14$0$$11$33363437353138333138300000000000$2365089182$16$12$d00321533b483f54a523f624a5f63269'},
+    {'mode': 11700, 'name': 'GOST R 34.11-2012 (Streebog) 256-bit, big-endian', 'example_hash': '57e9e50caec93d72e9498c211d6dc4f4d328248b48ecf46ba7abfa874f666e36'},
+    {'mode': 11750, 'name': 'HMAC-Streebog-256 (key = $pass), big-endian', 'example_hash': '0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337'},
+    {'mode': 11760, 'name': 'HMAC-Streebog-256 (key = $salt), big-endian', 'example_hash': 'd5c6b874338a492ac57ddc6871afc3c70dcfd264185a69d84cf839a07ef92b2c:08151337'},
+    {'mode': 11800, 'name': 'GOST R 34.11-2012 (Streebog) 512-bit, big-endian', 'example_hash': '5d5bdba48c8f89ee6c0a0e11023540424283e84902de08013aeeb626e819950bb32842903593a1d2e8f71897ff7fe72e17ac9ba8ce1d1d2f7e9c4359ea63bdc3'},
+    {'mode': 11850, 'name': 'HMAC-Streebog-512 (key = $pass), big-endian', 'example_hash': 'be4555415af4a05078dcf260bb3c0a35948135df3dbf93f7c8b80574ceb0d71ea4312127f839b7707bf39ccc932d9e7cb799671183455889e8dde3738dfab5b6:08151337'},
+    {'mode': 11860, 'name': 'HMAC-Streebog-512 (key = $salt), big-endian', 'example_hash': 'bebf6831b3f9f958acb345a88cb98f30cb0374cff13e6012818487c8dc8d5857f23bca2caed280195ad558b8ce393503e632e901e8d1eb2ccb349a544ac195fd:08151337'},
+    {'mode': 11900, 'name': 'PBKDF2-HMAC-MD5', 'example_hash': 'md5:1000:NjAxMDY4MQ==:a00DtIW9hP9voC85fmEA5uVhgdDx67nSPSm9yADHjkI='},
+    {'mode': 12000, 'name': 'PBKDF2-HMAC-SHA1', 'example_hash': 'sha1:1000:MTYwNTM4MDU4Mzc4MzA=:aGghFQBtQ8+WVlMk5GEaMw=='},
+    {'mode': 12001, 'name': 'Atlassian (PBKDF2-HMAC-SHA1)', 'example_hash': '{PKCS5S2}NTczNTY0NDY2NjQyNzU1Mx8gGiRGobaZYwumctGHbn2ZOHB8LkwzH+Z1gkWfy1zD'},
+    {'mode': 12100, 'name': 'PBKDF2-HMAC-SHA512', 'example_hash': 'sha512:1000:NzY2:DNWohLbdIWIt4Npk9gpTvA=='},
+    {'mode': 12150, 'name': 'Apache Shiro 1 SHA-512', 'example_hash': '$shiro1$SHA-512$1024$WobJGSjbUhsMdaILomMOdw==$9uptGJ24vzZCqZI55F77N7xjUxGlVrK5aCmAwIrV1vwDmFM4akE6Hmd23Aj8ANLSUdIEkHLZ6SnoitZbOsoQNQ=='},
+    {'mode': 12200, 'name': 'eCryptfs', 'example_hash': '$ecryptfs$0$1$4207883745556753$567daa975114206c'},
+    {'mode': 12300, 'name': 'Oracle T: Type (Oracle 12+)', 'example_hash': '8F75FBD166AFDB6D7587DAB89C2F15672AAC031C5B0B5E65C0835FB130555F6FF4E0E5764976755558112246FFF306450C22F6B7746B9E9831ED97B373992F9157436180438417080374881414745255'},
+    {'mode': 12400, 'name': 'BSDi Crypt, Extended DES', 'example_hash': '_GW..8841inaTltazRsQ'},
+    {'mode': 12500, 'name': 'RAR3-hp', 'example_hash': '$RAR3$*0*45109af8ab5f297a*adbf6c5385d7a40373e8f77d7b89d317'},
+    {'mode': 12600, 'name': 'ColdFusion 10+', 'example_hash': '3f3473a071b1fb955544e80c81853ca0f1e4f9ee4ca3bf4d2a8a10b5ef5be1f6:6058321484538505215534207835727413038041028036676832416353152201'},
+    {'mode': 12700, 'name': 'Blockchain, My Wallet', 'example_hash': '$blockchain$288$7132537221140006826366048012835...961ae [Truncated, use --mach for full length]'},
+    {'mode': 12800, 'name': 'MS-AzureSync PBKDF2-HMAC-SHA256', 'example_hash': 'v1;PPH1_MD4,54188415275183448824,100,55b530f052a9af79a7ba9c466dddcb8b116f8babf6c3873a51a3898fb008e123'},
+    {'mode': 12900, 'name': 'Android FDE (Samsung DEK)', 'example_hash': '15738301074686823451275227041071157383010746868234512752270410712bc4be900bf96ccf43c9852fff49b5f5874a9f6e7bf301686fa6d98286de151f15738301074686823451275227041071'},
+    {'mode': 13000, 'name': 'RAR5', 'example_hash': '$rar5$16$38466361001011015181344360681307$15$00000000000000000000000000000000$8$cc7a30583e62676a'},
+    {'mode': 13100, 'name': 'Kerberos 5, etype 23, TGS-REP', 'example_hash': '$krb5tgs$23$*user$realm$test/spn*$b548e10f5694a...24d9a [Truncated, use --mach for full length]'},
+    {'mode': 13200, 'name': 'AxCrypt 1', 'example_hash': '$axcrypt$*1*10467*9a7cd609bb262c738d9f0e4977039b94*ecbe0fd05a96fd2099d88a92eebb76c59d6837dfe55b3631'},
+    {'mode': 13300, 'name': 'AxCrypt 1 in-memory SHA1', 'example_hash': '$axcrypt_sha1$b89eaac7e61417341b710b727768294d'},
+    {'mode': 13400, 'name': 'KeePass (KDBX v2/v3)', 'example_hash': '$keepass$*2*24569*0*c40432355cce7348c48053ceea0...97bf7 [Truncated, use --mach for full length]'},
+    {'mode': 13500, 'name': 'PeopleSoft PS_TOKEN', 'example_hash': '24eea51b53d02b4c5ff99bcb05a6847fdb2d9308:4f10a0...42212 [Truncated, use --mach for full length]'},
+    {'mode': 13600, 'name': 'WinZip', 'example_hash': '$zip2$*0*1*0*0675369741458183*5dc5*0**36b85538918416712640*$/zip2$'},
+    {'mode': 13711, 'name': 'VeraCrypt RIPEMD160 + XTS 512 bit (legacy)', 'example_hash': '531aca1fa6db5118506320114cb11a9f00dade61720533f...ba346 [Truncated, use --mach for full length]'},
+    {'mode': 13712, 'name': 'VeraCrypt RIPEMD160 + XTS 1024 bit (legacy)', 'example_hash': '531aca1fa6db5118506320114cb11a9f00dade61720533f...ba346 [Truncated, use --mach for full length]'},
+    {'mode': 13713, 'name': 'VeraCrypt RIPEMD160 + XTS 1536 bit (legacy)', 'example_hash': '531aca1fa6db5118506320114cb11a9f00dade61720533f...ba346 [Truncated, use --mach for full length]'},
+    {'mode': 13721, 'name': 'VeraCrypt SHA512 + XTS 512 bit (legacy)', 'example_hash': '2be25b279d8d2694e0ad1e5049902e717f1bdf741bbd678...ef609 [Truncated, use --mach for full length]'},
+    {'mode': 13722, 'name': 'VeraCrypt SHA512 + XTS 1024 bit (legacy)', 'example_hash': '37e6db10454a5d74c1e75eca0bc8a70e67ac032357e4bd6...648c9 [Truncated, use --mach for full length]'},
+    {'mode': 13723, 'name': 'VeraCrypt SHA512 + XTS 1536 bit (legacy)', 'example_hash': 'd44f26d1742260f88023d825729cc5a64cf8475d887632a...36101 [Truncated, use --mach for full length]'},
+    {'mode': 13731, 'name': 'VeraCrypt Whirlpool + XTS 512 bit (legacy)', 'example_hash': '48f79476aa0aa8327a8a9056e61450f4e2883c9e9669142...898c9 [Truncated, use --mach for full length]'},
+    {'mode': 13732, 'name': 'VeraCrypt Whirlpool + XTS 1024 bit (legacy)', 'example_hash': '1b721942019ebe8cedddbed7744a0702c0e053281a467e0...a4907 [Truncated, use --mach for full length]'},
+    {'mode': 13733, 'name': 'VeraCrypt Whirlpool + XTS 1536 bit (legacy)', 'example_hash': '5eb128daef63eff7e6db6aa10a8858f89964f47844acca6...ae668 [Truncated, use --mach for full length]'},
+    {'mode': 13741, 'name': 'VeraCrypt RIPEMD160 + XTS 512 bit + boot-mode (legacy)', 'example_hash': '528c2997054ce1d22cbc5233463df8119a0318ab94aa715...097bb [Truncated, use --mach for full length]'},
+    {'mode': 13742, 'name': 'VeraCrypt RIPEMD160 + XTS 1024 bit + boot-mode (legacy)', 'example_hash': 'a3c0fa44ec59bf7a3eed64bf70b8a60623664503eeb972e...c499d [Truncated, use --mach for full length]'},
+    {'mode': 13743, 'name': 'VeraCrypt RIPEMD160 + XTS 1536 bit + boot-mode (legacy)', 'example_hash': '1a8c0135fa94567aa866740cb27c5b9763c95be3ac0b7b5...2aa7c [Truncated, use --mach for full length]'},
+    {'mode': 13751, 'name': 'VeraCrypt SHA256 + XTS 512 bit (legacy)', 'example_hash': 'b8a19a544414e540172595aef79e6616f504799b40a407e...8af91 [Truncated, use --mach for full length]'},
+    {'mode': 13752, 'name': 'VeraCrypt SHA256 + XTS 1024 bit (legacy)', 'example_hash': '1c3197f32dc5b72b4d60474a7a43afefb0d2e856a8fc495...b4857 [Truncated, use --mach for full length]'},
+    {'mode': 13753, 'name': 'VeraCrypt SHA256 + XTS 1536 bit (legacy)', 'example_hash': 'f421bdc1087b8319c12d84a680ceab0102e8e41c9ccffe7...a8c03 [Truncated, use --mach for full length]'},
+    {'mode': 13761, 'name': 'VeraCrypt SHA256 + XTS 512 bit + boot-mode (legacy)', 'example_hash': 'c8a5f07efc320ecd797ac2c5b911b0f7ee688f859890dd3...5c590 [Truncated, use --mach for full length]'},
+    {'mode': 13762, 'name': 'VeraCrypt SHA256 + XTS 1024 bit + boot-mode (legacy)', 'example_hash': '6bb6eef1af55eb2b2849e1fc9c90c08f705010efa644358...50265 [Truncated, use --mach for full length]'},
+    {'mode': 13763, 'name': 'VeraCrypt SHA256 + XTS 1536 bit + boot-mode (legacy)', 'example_hash': 'f95b222552195378a228d932f7df38ca459b6d812899be4...a7b70 [Truncated, use --mach for full length]'},
+    {'mode': 13771, 'name': 'VeraCrypt Streebog-512 + XTS 512 bit (legacy)', 'example_hash': '444ec71554f0a2989b34bd8a5750ae7b5ed8b1ccdead291...b3ad1 [Truncated, use --mach for full length]'},
+    {'mode': 13772, 'name': 'VeraCrypt Streebog-512 + XTS 1024 bit (legacy)', 'example_hash': '0f5da0b17c60edcd392058752ec29c389b140b54cd1f94d...e86bd [Truncated, use --mach for full length]'},
+    {'mode': 13773, 'name': 'VeraCrypt Streebog-512 + XTS 1536 bit (legacy)', 'example_hash': '18d2e8314961850f8fc26d2bc6f896db9c4eee301b5fa72...66205 [Truncated, use --mach for full length]'},
+    {'mode': 13781, 'name': 'VeraCrypt Streebog-512 + XTS 512 bit + boot-mode (legacy)', 'example_hash': '2bfe4a72e13388a9ce074bbe0711a48d62f123df85b09e0...772e8 [Truncated, use --mach for full length]'},
+    {'mode': 13782, 'name': 'VeraCrypt Streebog-512 + XTS 1024 bit + boot-mode (legacy)', 'example_hash': 'af7a64c7c81f608527552532cc7049b0d369e2ce20202d7...dd752 [Truncated, use --mach for full length]'},
+    {'mode': 13783, 'name': 'VeraCrypt Streebog-512 + XTS 1536 bit + boot-mode (legacy)', 'example_hash': '0c9d7444e9e64a833e857163787b2f6349224bdb4bbf788...0d9e0 [Truncated, use --mach for full length]'},
+    {'mode': 13800, 'name': 'Windows Phone 8+ PIN/password', 'example_hash': '060a4a94cb2263bcefe74705bd0efe7643d09c2bc25fc69...36422 [Truncated, use --mach for full length]'},
+    {'mode': 13900, 'name': 'OpenCart', 'example_hash': '058c1c3773340c8563421e2b17e60eb7c916787e:827500576'},
+    {'mode': 14000, 'name': 'DES (PT = $salt, key = $pass)', 'example_hash': '53b325182924b356:1412781058343178'},
+    {'mode': 14100, 'name': '3DES (PT = $salt, key = $pass)', 'example_hash': '4c29eea59d8db1e7:7428288455525516'},
+    {'mode': 14200, 'name': 'RACF KDFAES', 'example_hash': '$racf-kdfaes$*USER*E7D7E66D000180000008003200100010*00112233445566778899AABBCCDDEEFF*5390653DEC0316FB5AD56053208056A6'},
+    {'mode': 14400, 'name': 'sha1(CX)', 'example_hash': 'fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227'},
+    {'mode': 14500, 'name': 'Linux Kernel Crypto API (2.4)', 'example_hash': '$cryptoapi$9$2$03000000000000000000000000000000$00000000000000000000000000000000$d1d20e91a8f2e18881dc79369d8af761'},
+    {'mode': 14700, 'name': 'iTunes backup < 10.0', 'example_hash': '$itunes_backup$*9*ebd7f9b33293b2511f0a4139d5b213feff51476968863cef60ec38d720497b6ff39a0bb63fa9f84e*10000*2202015774208421818002001652122401871832**'},
+    {'mode': 14800, 'name': 'iTunes backup >= 10.0', 'example_hash': '$itunes_backup$*10*17a3b858e79bc273be43a9f113b71efe7ec8e7e401396b350180b4592ef45db67ffef7b2d64329a5*10000*2721336781705041205314422175267631184867*1000*99fafc983e732998adb9fadc162a2e382143f115'},
+    {'mode': 14900, 'name': 'Skip32 (PT = $salt, key = $pass)', 'example_hash': '7090b6b9:04223875'},
+    {'mode': 15000, 'name': 'FileZilla Server >= 0.9.55', 'example_hash': 'bfa9fe5a404faff8b0d200385e26b783a163e475869336029d3ebaccaf02b5f16e4949279e8a33b942ab647f8f19a83dbe89a6d39dd6d8f84812de7d2e556767:6422386434050716105781561510557063652302782465168686858312232148'},
+    {'mode': 15100, 'name': 'Juniper/NetBSD sha1crypt', 'example_hash': '$sha1$20000$75552156$HhYMDdaEHiK3eMIzTldOFPnw.s2Q'},
+    {'mode': 15200, 'name': 'Blockchain, My Wallet, V2', 'example_hash': '$blockchain$v2$5000$288$32472425242847180618486...410f2 [Truncated, use --mach for full length]'},
+    {'mode': 15300, 'name': 'DPAPI masterkey file v1 (context 1 and 2)', 'example_hash': '$DPAPImk$1*1*S-15-21-466364039-425773974-453930...37d78 [Truncated, use --mach for full length]'},
+    {'mode': 15310, 'name': 'DPAPI masterkey file v1 (context 3)', 'example_hash': '$DPAPImk$1*3*S-15-21-407415836-404165111-436049...cecc5 [Truncated, use --mach for full length]'},
+    {'mode': 15400, 'name': 'ChaCha20', 'example_hash': '$chacha20$*0400000000000003*16*0200000000000001*5152535455565758*6b05fe554b0bc3b3'},
+    {'mode': 15500, 'name': 'JKS Java Key Store Private Keys (SHA1)', 'example_hash': '$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E22...*test [Truncated, use --mach for full length]'},
+    {'mode': 15600, 'name': 'Ethereum Wallet, PBKDF2-HMAC-SHA256', 'example_hash': '$ethereum$p*1024*38353131353831333338313138363430*a8b4dfe92687dbc0afeb5dae7863f18964241e96b264f09959903c8c924583fc*0a9252861d1e235994ce33dbca91c98231764d8ecb4950015a8ae20d6415b986'},
+    {'mode': 15700, 'name': 'Ethereum Wallet, SCRYPT', 'example_hash': '$ethereum$s*262144*8*1*313431383733343433383830...05efd [Truncated, use --mach for full length]'},
+    {'mode': 15900, 'name': 'DPAPI masterkey file v2 (context 1 and 2)', 'example_hash': '$DPAPImk$2*1*S-15-21-439882973-489230393-482956...43ad8 [Truncated, use --mach for full length]'},
+    {'mode': 15910, 'name': 'DPAPI masterkey file v2 (context 3)', 'example_hash': '$DPAPImk$2*3*S-15-21-464497560-472124119-475628...32fd9 [Truncated, use --mach for full length]'},
+    {'mode': 16000, 'name': 'Tripcode', 'example_hash': 'pfaRCwDe0U'},
+    {'mode': 16100, 'name': 'TACACS+', 'example_hash': '$tacacs-plus$0$5fde8e68$4e13e8fb33df$c006'},
+    {'mode': 16200, 'name': 'Apple Secure Notes', 'example_hash': '$ASN$*1*20000*80771171105233481004850004085037*d04b17af7f6b184346aad3efefe8bec0987ee73418291a41'},
+    {'mode': 16300, 'name': 'Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256', 'example_hash': '$ethereum$w*e94a8e49deac2d62206bf9bfb7d2aaea7eb...b1593 [Truncated, use --mach for full length]'},
+    {'mode': 16400, 'name': 'CRAM-MD5 Dovecot', 'example_hash': '{CRAM-MD5}5389b33b9725e5657cb631dc50017ff100000000000000000000000000000000'},
+    {'mode': 16500, 'name': 'JWT (JSON Web Token)', 'example_hash': 'eyJhbGciOiJIUzI1NiJ9.eyIzNDM2MzQyMCI6NTc2ODc1NDd9.f1nXZ3V_Hrr6ee-AFCTLaHRnrkiKmio2t3JqwL32guY'},
+    {'mode': 16501, 'name': 'Perl Mojolicious session cookie (HMAC-SHA256, >= v9.19)', 'example_hash': 'mojolicious=eyJiYXIiOiJhYmNhYmNhYmNhYmNhYmNhYmN...9ddbf [Truncated, use --mach for full length]'},
+    {'mode': 16600, 'name': 'Electrum Wallet (Salt-Type 1-3)', 'example_hash': '$electrum$1*44358283104603165383613672586868*c43a6632d9f59364f74c395a03d8c2ea'},
+    {'mode': 16700, 'name': 'FileVault 2', 'example_hash': '$fvde$1$16$84286044060108438487434858307513$20000$f1620ab93192112f0a23eea89b5d4df065661f974b704191'},
+    {'mode': 16800, 'name': 'WPA-PMKID-PBKDF2', 'example_hash': '2582a8281bf9d4308d6f5731d0e61c61:4604ba734d4e:89acf0e761f4:ed487162465a774bfba60eb603a39f3a'},
+    {'mode': 16801, 'name': 'WPA-PMKID-PMK', 'example_hash': '2582a8281bf9d4308d6f5731d0e61c61:4604ba734d4e:89acf0e761f4'},
+    {'mode': 16900, 'name': 'Ansible Vault', 'example_hash': '$ansible$0*0*6b761adc6faeb0cc0bf197d3d4a4a7d3f1682e4b169cae8fa6b459b3214ed41e*426d313c5809d4a80a4b9bc7d4823070*d8bad190c7fbc7c3cb1c60a27abfb0ff59d6fb73178681c7454d94a0f56a4360'},
+    {'mode': 17010, 'name': 'GPG (AES-128/AES-256 (SHA-1($pass)))', 'example_hash': '$gpg$*1*348*1024*8833fa3812b5500aa9eb7e46febfa3...997db [Truncated, use --mach for full length]'},
+    {'mode': 17020, 'name': 'GPG (AES-128/AES-256 (SHA-512($pass)))', 'example_hash': '$gpg$*1*668*2048*57e1f19c69a86038e23d7e5af5d810...2d34e [Truncated, use --mach for full length]'},
+    {'mode': 17030, 'name': 'GPG (AES-128/AES-256 (SHA-256($pass)))', 'example_hash': '$gpg$*1*668*2048*e75985b4e7d0bce9e38925a5cf6949...404b0 [Truncated, use --mach for full length]'},
+    {'mode': 17040, 'name': 'GPG (CAST5 (SHA-1($pass)))', 'example_hash': '$gpg$*1*1308*4096*ddf02802e2d06319bcf5962745b73...54bee [Truncated, use --mach for full length]'},
+    {'mode': 17200, 'name': 'PKZIP (Compressed)', 'example_hash': '$pkzip2$1*1*2*0*e3*1c5*eda7a8de*0*28*8*e3*eda7*...zip2$ [Truncated, use --mach for full length]'},
+    {'mode': 17210, 'name': 'PKZIP (Uncompressed)', 'example_hash': '$pkzip2$1*1*2*0*1d1*1c5*eda7a8de*0*28*0*1d1*eda...zip2$ [Truncated, use --mach for full length]'},
+    {'mode': 17220, 'name': 'PKZIP (Compressed Multi-File)', 'example_hash': '$pkzip2$3*1*1*0*8*24*a425*8827*d1730095cd829e24...zip2$ [Truncated, use --mach for full length]'},
+    {'mode': 17225, 'name': 'PKZIP (Mixed Multi-File)', 'example_hash': '$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994...zip2$ [Truncated, use --mach for full length]'},
+    {'mode': 17230, 'name': 'PKZIP (Mixed Multi-File Checksum-Only)', 'example_hash': '$pkzip2$8*1*1*0*8*24*a425*8827*3bd479d541019c2f...zip2$ [Truncated, use --mach for full length]'},
+    {'mode': 17300, 'name': 'SHA3-224', 'example_hash': '412ef78534ba6ab0e9b1607d3e9767a25c1ea9d5e83176b4c2817a6c'},
+    {'mode': 17400, 'name': 'SHA3-256', 'example_hash': 'd60fcf6585da4e17224f58858970f0ed5ab042c3916b76b0b828e62eaf636cbd'},
+    {'mode': 17500, 'name': 'SHA3-384', 'example_hash': '983ba28532cc6320d04f20fa485bcedb38bddb666eca5f1e5aa279ff1c6244fe5f83cf4bbf05b95ff378dd2353617221'},
+    {'mode': 17600, 'name': 'SHA3-512', 'example_hash': '7c2dc1d743735d4e069f3bda85b1b7e9172033dfdd8cd599ca094ef8570f3930c3f2c0b7afc8d6152ce4eaad6057a2ff22e71934b3a3dd0fb55a7fc84a53144e'},
+    {'mode': 17700, 'name': 'Keccak-224', 'example_hash': 'e1dfad9bafeae6ef15f5bbb16cf4c26f09f5f1e7870581962fc84636'},
+    {'mode': 17800, 'name': 'Keccak-256', 'example_hash': '203f88777f18bb4ee1226627b547808f38d90d3e106262b5de9ca943b57137b6'},
+    {'mode': 17900, 'name': 'Keccak-384', 'example_hash': '5804b7ada5806ba79540100e9a7ef493654ff2a21d94d4f2ce4bf69abda5d94bf03701fe9525a15dfdc625bfbd769701'},
+    {'mode': 18000, 'name': 'Keccak-512', 'example_hash': '2fbf5c9080f0a704de2e915ba8fdae6ab00bbc026b2c1c8fa07da1239381c6b7f4dfd399bf9652500da723694a4c719587dd0219cb30eabe61210a8ae4dc0b03'},
+    {'mode': 18100, 'name': 'TOTP (HMAC-SHA1)', 'example_hash': '597056:3600:613004:1234567890:322664:9876543210'},
+    {'mode': 18200, 'name': 'Kerberos 5, etype 23, AS-REP', 'example_hash': '$krb5asrep$23$user@domain.com:3e156ada591263b8a...102ac [Truncated, use --mach for full length]'},
+    {'mode': 18300, 'name': 'Apple File System (APFS)', 'example_hash': '$fvde$2$16$58778104701476542047675521040224$20000$39602e86b7cea4a34f4ff69ff6ed706d68954ee474de1d2a9f6a6f2d24d172001e484c1d4eaa237d'},
+    {'mode': 18400, 'name': 'Open Document Format (ODF) 1.2 (SHA-256, AES)', 'example_hash': '$odf$*1*1*100000*32*751854d8b90731ce0579f96bea6...d3322 [Truncated, use --mach for full length]'},
+    {'mode': 18500, 'name': 'sha1(md5(md5($pass)))', 'example_hash': '888a2ffcb3854fba0321110c5d0d434ad1aa2880'},
+    {'mode': 18600, 'name': 'Open Document Format (ODF) 1.1 (SHA-1, Blowfish)', 'example_hash': '$odf$*0*0*1024*16*bff753835f4ea15644b8a2f8e4b5b...ec871 [Truncated, use --mach for full length]'},
+    {'mode': 18700, 'name': 'Java Object hashCode()', 'example_hash': '29937c08'},
+    {'mode': 18800, 'name': 'Blockchain, My Wallet, Second Password (SHA256)', 'example_hash': 'YnM6WYERjJfhxwepT7zV6odWoEUz1X4esYQb4bQ3KZ7bbZAyOTc1MDM3OTc1NjMyODA0ECcAAD3vFoc='},
+    {'mode': 18900, 'name': 'Android Backup', 'example_hash': '$ab$5*0*10000*b8900e4885ff9cad8f01ee1957a43bd63...ec52d [Truncated, use --mach for full length]'},
+    {'mode': 19000, 'name': 'QNX /etc/shadow (MD5)', 'example_hash': '@m@75f6f129f9c9e77b6b1b78f791ed764a@8741857532330050'},
+    {'mode': 19100, 'name': 'QNX /etc/shadow (SHA256)', 'example_hash': '@s@0b365cab7e17ee1e7e1a90078501cc1aa85888d6da34e2f5b04f5c614b882a93@5498317092471604'},
+    {'mode': 19200, 'name': 'QNX /etc/shadow (SHA512)', 'example_hash': '@S@715df9e94c097805dd1e13c6a40f331d02ce589765a2100ec7435e76b978d5efc364ce10870780622cee003c9951bd92ec1020c924b124cfff7e0fa1f73e3672@2257314490293159'},
+    {'mode': 19210, 'name': 'QNX 7 /etc/shadow (SHA512)', 'example_hash': '@S@vm2nBGHes6QkXra0f74XmouSiRzjYD3r/0py+txv0Kr8A4hCPMGFHoZqr41JFiYcJPPOeIheqFseMyLyw/15Pw==@NDY2MDEwNjk3YjBjYzM2MzliMzc3Mzc0ZTNiMTAzNzE='},
+    {'mode': 19300, 'name': 'sha1($salt1.$pass.$salt2)', 'example_hash': '630d2e918ab98e5fad9c61c0e4697654c4c16d73:184638...20334 [Truncated, use --mach for full length]'},
+    {'mode': 19500, 'name': 'Ruby on Rails Restful-Authentication', 'example_hash': 'd7d5ea3e09391da412b653ae6c8d7431ec273ea2:238769868762:8962783556527653675'},
+    {'mode': 19600, 'name': 'Kerberos 5, etype 17, TGS-REP', 'example_hash': '$krb5tgs$17$srv_http$synacktiv.local$849e31b3db...e908a [Truncated, use --mach for full length]'},
+    {'mode': 19700, 'name': 'Kerberos 5, etype 18, TGS-REP', 'example_hash': '$krb5tgs$18$srv_http$synacktiv.local$16ce51f6eb...5c9f6 [Truncated, use --mach for full length]'},
+    {'mode': 19800, 'name': 'Kerberos 5, etype 17, Pre-Auth', 'example_hash': '$krb5pa$17$hashcat$HASHCATDOMAIN.COM$a17776abe5383236c58582f515843e029ecbff43706d177651b7b6cdb2713b17597ddb35b1c9c470c281589fd1d51cca125414d19e40e333'},
+    {'mode': 19900, 'name': 'Kerberos 5, etype 18, Pre-Auth', 'example_hash': '$krb5pa$18$hashcat$HASHCATDOMAIN.COM$96c289009b05181bfd32062962740b1b1ce5f74eb12e0266cde74e81094661addab08c0c1a178882c91a0ed89ae4e0e68d2820b9cce69770'},
+    {'mode': 20011, 'name': 'DiskCryptor SHA512 + XTS 512 bit', 'example_hash': '$diskcryptor$0*37f6252cf81f8049f68deb41de5becfb...f6c39 [Truncated, use --mach for full length]'},
+    {'mode': 20012, 'name': 'DiskCryptor SHA512 + XTS 1024 bit', 'example_hash': '$diskcryptor$0*37f6252cf81f8049f68deb41de5becfb...f6c39 [Truncated, use --mach for full length]'},
+    {'mode': 20013, 'name': 'DiskCryptor SHA512 + XTS 1536 bit', 'example_hash': '$diskcryptor$0*37f6252cf81f8049f68deb41de5becfb...f6c39 [Truncated, use --mach for full length]'},
+    {'mode': 20200, 'name': 'Python passlib pbkdf2-sha512', 'example_hash': '$pbkdf2-sha512$25000$LyWE0HrP2RsjZCxlDGFMKQ$1vC5Ohk2mCS9b6akqsEfgeb4l74SF8XjH.SljXf3dMLHdlY1GK9ojcCKts6/asR4aPqBmk74nCDddU3tvSCJvw'},
+    {'mode': 20300, 'name': 'Python passlib pbkdf2-sha256', 'example_hash': '$pbkdf2-sha256$29000$x9h7j/Ge8x6DMEao1VqrdQ$kra3R1wEnY8mPdDWOpTqOTINaAmZvRMcYd8u5OBQP9A'},
+    {'mode': 20400, 'name': 'Python passlib pbkdf2-sha1', 'example_hash': '$pbkdf2$131000$r5WythYixPgfQ2jt3buXcg$8Kdr.QQEOaZIXNOrrru36I/.6Po'},
+    {'mode': 20500, 'name': 'PKZIP Master Key', 'example_hash': 'f1eff5c0368d10311dcfc419'},
+    {'mode': 20510, 'name': 'PKZIP Master Key (6 byte optimization)', 'example_hash': 'f1eff5c0368d10311dcfc419'},
+    {'mode': 20600, 'name': 'Oracle Transportation Management (SHA256)', 'example_hash': 'otm_sha256:1000:1234567890:S5Q9Kc0ETY6ZPyQU+JYY60oFjaJuZZaSinggmzU8PC4='},
+    {'mode': 20710, 'name': 'sha256(sha256($pass).$salt)', 'example_hash': 'bfede293ecf6539211a7305ea218b9f3f608953130405cda9eaba6fb6250f824:7218532375810603'},
+    {'mode': 20711, 'name': 'AuthMe sha256', 'example_hash': '$SHA$7218532375810603$bfede293ecf6539211a7305ea218b9f3f608953130405cda9eaba6fb6250f824'},
+    {'mode': 20712, 'name': 'RSA Security Analytics / NetWitness (sha256)', 'example_hash': '6F48F44C46F5ADC534597687B086278F0AAF7D262ADDB3978562A7D55BBDF467:MDAwMzY1NzYwODI4MQ=='},
+    {'mode': 20720, 'name': 'sha256($salt.sha256($pass))', 'example_hash': 'bae9edada8358fcebcd811f7d362f46277fb9d488379869fba65d79701d48b8b:869dc2ed80187919'},
+    {'mode': 20730, 'name': 'sha256(sha256($pass.$salt))', 'example_hash': 'ad66bdc0841d7e08d96c03de271ce14e77de078746b535adbf9d4b6ccbf2a517:7218532375810603'},
+    {'mode': 20800, 'name': 'sha256(md5($pass))', 'example_hash': '74ee1fae245edd6f27bf36efc3604942479fceefbadab5dc5c0b538c196eb0f1'},
+    {'mode': 20900, 'name': 'md5(sha1($pass).md5($pass).sha1($pass))', 'example_hash': '100b3a4fc1dc8d60d9bf40688d8b740a'},
+    {'mode': 21000, 'name': 'BitShares v0.x - sha512(sha512_bin(pass))', 'example_hash': 'caec04bdf7c17f763a9ec7439f7c9abda112f1bfc9b1bb684fef9b6142636979b9896cfc236896d821a69a961a143dd19c96d59777258201f1bbe5ecc2a2ecf5'},
+    {'mode': 21100, 'name': 'sha1(md5($pass.$salt))', 'example_hash': 'aade80a61c6e3cd3cac614f47c1991e0a87dd028:6'},
+    {'mode': 21200, 'name': 'md5(sha1($salt).md5($pass))', 'example_hash': 'e69b7a7fe1bf2ad9ef116f79551ee919:baa038987e582431a6d'},
+    {'mode': 21300, 'name': 'md5($salt.sha1($salt.$pass))', 'example_hash': '799dc7d9aa4d3f404cc21a4936dbdcde:68617368636174'},
+    {'mode': 21310, 'name': 'md5($salt1.sha1($salt2.$pass))', 'example_hash': 'dc91b5a658ef4b7d859e90742f340e24:708237:d270e9eea5802e346bcaa9b229f37766'},
+    {'mode': 21400, 'name': 'sha256(sha256_bin($pass))', 'example_hash': '0cc1b58a543f372327aa0281e97ab56e345267ee46feabf7709515debb7ec43c'},
+    {'mode': 21420, 'name': 'sha256($salt.sha256_bin($pass))', 'example_hash': '5934ea4d670c13a71155faba42056b2525f71bdc9215d31108990c11bf3d98e3:9269771356270099311432765354522635185291064175409115041569'},
+    {'mode': 21500, 'name': 'SolarWinds Orion', 'example_hash': '$solarwinds$0$admin$fj4EBQewCQUZ7IYHl0qL8uj9kQSBb3m7N4u0crkKK0Uj9rbbAnSrBZMXO7oWx9KqL3sCzwncvPZ9hyDV9QCFTg=='},
+    {'mode': 21501, 'name': 'SolarWinds Orion v2', 'example_hash': '$solarwinds$1$3pHkk55NTYpAeV3EJjcAww==$N4Ii2PxXX/bTZZwslQLIKrp0wvfZ5aN9hpyiR896ozJMJTPO1Q7BK1Eht8Vhl4kXq/42Vn2zp3qYeAkRuqsuEw=='},
+    {'mode': 21600, 'name': 'Web2py pbkdf2-sha512', 'example_hash': 'pbkdf2(1000,20,sha512)$744943$c5f8cdef76e3327c908d8d96d4abdb3d8caba14c'},
+    {'mode': 21700, 'name': 'Electrum Wallet (Salt-Type 4)', 'example_hash': '$electrum$4*03eae309d8bda5dcbddaae8145469193152...6fedc [Truncated, use --mach for full length]'},
+    {'mode': 21800, 'name': 'Electrum Wallet (Salt-Type 5)', 'example_hash': '$electrum$5*02170fee7c35f1ef3b229edc90fbd0793b6...44135 [Truncated, use --mach for full length]'},
+    {'mode': 21900, 'name': 'md5(md5(md5($pass.$salt1)).$salt2)', 'example_hash': '2c749af6c65cf3e82e5837e3056727f5:59331674906582121215362940957615121466283616005471:17254656838978443692786064919357750120910718779182716907569266'},
+    {'mode': 22000, 'name': 'WPA-PBKDF2-PMKID+EAPOL', 'example_hash': 'WPA*01*4d4fe7aac3a2cecab195321ceb99a7d0*fc690c158264*f4747f87f9f4*686173686361742d6573736964***'},
+    {'mode': 22001, 'name': 'WPA-PMK-PMKID+EAPOL', 'example_hash': 'WPA*01*5ce7ebe97a1bbfeb2822ae627b726d5b*27462da350ac*accd10fb464e*686173686361742d6573736964***'},
+    {'mode': 22100, 'name': 'BitLocker', 'example_hash': '$bitlocker$1$16$6f972989ddc209f1eccf07313a7266a...059fb [Truncated, use --mach for full length]'},
+    {'mode': 22200, 'name': 'Citrix NetScaler (SHA512)', 'example_hash': '2f9282ade42ce148175dc3b4d8b5916dae5211eee49886c3f7cc768f6b9f2eb982a5ac2f2672a0223999bfd15349093278adf12f6276e8b61dacf5572b3f93d0b4fa886ce'},
+    {'mode': 22300, 'name': 'sha256($salt.$pass.$salt)', 'example_hash': '755a8ce4e0cf0baee41d714aa35c9fca803106608f718f973eab006578285007:11265'},
+    {'mode': 22301, 'name': 'Telegram Mobile App Passcode (SHA256)', 'example_hash': '$telegram$0*518c001aeb3b4ae96c6173be4cebe60a85f67b1e087b045935849e2f815b5e41*25184098058621950709328221838128'},
+    {'mode': 22400, 'name': 'AES Crypt (SHA256)', 'example_hash': '$aescrypt$1*efc648908ca7ec727f37f3316dfd885c*ef...bdf7e [Truncated, use --mach for full length]'},
+    {'mode': 22500, 'name': 'MultiBit Classic .key (MD5)', 'example_hash': '$multibit$1*e5912fe5c84af3d5*5f0391c219e8ef62c06505b1f6232858f5bcaa739c2b471d45dd0bd8345334de'},
+    {'mode': 22600, 'name': 'Telegram Desktop < v2.1.14 (PBKDF2-HMAC-SHA1)', 'example_hash': '$telegram$1*4000*913a7e42143b4eed0fb532dacfa04e...5d3bd [Truncated, use --mach for full length]'},
+    {'mode': 22700, 'name': 'MultiBit HD (scrypt)', 'example_hash': '$multibit$2*2e311aa2cc5ec99f7073cacc8a2d1938*e3ad782e7f92d66a3cdfaec43a46be29*5d1cabd4f4a50ba125f88c47027fff9b'},
+    {'mode': 22800, 'name': 'Simpla CMS - md5($salt.$pass.md5($pass))', 'example_hash': '86d173f13213d1e48bce9647bdc306d5:8e86a279d6e182b3c811c559e6b15484'},
+    {'mode': 22911, 'name': 'RSA/DSA/EC/OpenSSH Private Keys ($0$)', 'example_hash': '$sshng$0$8$7532262427635482$1224$e1b1690703b83f...2fa5b [Truncated, use --mach for full length]'},
+    {'mode': 22921, 'name': 'RSA/DSA/EC/OpenSSH Private Keys ($6$)', 'example_hash': '$sshng$6$8$7620048997557487$1224$13517a1204dc69...172e6 [Truncated, use --mach for full length]'},
+    {'mode': 22931, 'name': 'RSA/DSA/EC/OpenSSH Private Keys ($1, $3$)', 'example_hash': '$sshng$1$16$14987802644369864387956120434709$12...86913 [Truncated, use --mach for full length]'},
+    {'mode': 22941, 'name': 'RSA/DSA/EC/OpenSSH Private Keys ($4$)', 'example_hash': '$sshng$4$16$01684556100059289727957814500256$12...defd5 [Truncated, use --mach for full length]'},
+    {'mode': 22951, 'name': 'RSA/DSA/EC/OpenSSH Private Keys ($5$)', 'example_hash': '$sshng$5$16$52935050547964524511665675049973$12...48393 [Truncated, use --mach for full length]'},
+    {'mode': 23001, 'name': 'SecureZIP AES-128', 'example_hash': '$zip3$*0*1*128*0*b4630625c92b6e7848f6fd86*df2f6...e.txt [Truncated, use --mach for full length]'},
+    {'mode': 23002, 'name': 'SecureZIP AES-192', 'example_hash': '$zip3$*0*1*192*0*53ff2de8c280778e1e0ab997*603eb...e.txt [Truncated, use --mach for full length]'},
+    {'mode': 23003, 'name': 'SecureZIP AES-256', 'example_hash': '$zip3$*0*1*256*0*39bff47df6152a0214d7a967*65ff4...e.txt [Truncated, use --mach for full length]'},
+    {'mode': 23100, 'name': 'Apple Keychain', 'example_hash': '$keychain$*74cd1efd49e54a8fdc8750288801e09fa26a33b1*66001ad4e0498dc7*5a084b7314971b728cb551ac40b2e50b7b5bd8b8496b902efe7af07538863a45394ead8399ec581681f7416003c49cc7'},
+    {'mode': 23200, 'name': 'XMPP SCRAM PBKDF2-SHA1', 'example_hash': '$xmpp-scram$0$4096$45$353835323736323530353932363531393630313632353634313335323434323038393931323138373138343134$6d5b543b985dc6c0645da3c83d114fce121aa51d'},
+    {'mode': 23300, 'name': 'Apple iWork', 'example_hash': '$iwork$2$1$1$4000$b31b7320d1e7a5ee$01f54d6f9e5090eb16fef2b05f8242bc$69561c985268326b7353fb22c3685a378341127557bd2bbea1bd10afb31f2127344707b662a2c29480c32b8b93dea0538327f604e5aa8733be83af25f370f7ac'},
+    {'mode': 23400, 'name': 'Bitwarden', 'example_hash': '$bitwarden$2*100000*2*bm9yZXBseUBoYXNoY2F0Lm5ldA==*+v5rHxYydSRUDlan+4pSoiYQwAgEhdmivlb+exQX+fg='},
+    {'mode': 23500, 'name': 'AxCrypt 2 AES-128', 'example_hash': '$axcrypt$*2*10000*6d44c6d19076bce9920c5fb76b246...165f8 [Truncated, use --mach for full length]'},
+    {'mode': 23600, 'name': 'AxCrypt 2 AES-256', 'example_hash': '$axcrypt$*2*10000*79bea2d51670484a065241c52613b...1ced2 [Truncated, use --mach for full length]'},
+    {'mode': 23700, 'name': 'RAR3-p (Uncompressed)', 'example_hash': '$RAR3$*1*e54a73729887cb53*49b0a846*16*14*1*34620bcca8176642a210b1051901921e*30'},
+    {'mode': 23800, 'name': 'RAR3-p (Compressed)', 'example_hash': '$RAR3$*1*ad56eb40219c9da2*834064ce*32*13*1*eb47b1abe17a1a75bce6c92ab1cef3f4126035ea95deaf08b3f32a0c7b8078e1*33'},
+    {'mode': 23900, 'name': 'BestCrypt v3 Volume Encryption', 'example_hash': '$bcve$3$08$234b8182cee7098b$35c12ef76a1e88175c4...35b43 [Truncated, use --mach for full length]'},
+    {'mode': 24000, 'name': 'BestCrypt v4 Volume Encryption', 'example_hash': '$bcve$4$08$323631353538333233323034363039393534...32723 [Truncated, use --mach for full length]'},
+    {'mode': 24100, 'name': 'MongoDB ServerKey SCRAM-SHA-1', 'example_hash': '$mongodb-scram$*0*dXNlcg==*10000*4p+f1tKpK18hQqrVr0UGOw==*Jv9lrpUQ2bVg2ZkXvRm2rppsqNw='},
+    {'mode': 24200, 'name': 'MongoDB ServerKey SCRAM-SHA-256', 'example_hash': '$mongodb-scram$*1*dXNlcg==*15000*qYaA1K1ZZSSpWfY+yqShlcTn0XVcrNipxiYCLQ==*QWVry9aTS/JW+y5CWCBr8lcEH9Kr/D4je60ncooPer8='},
+    {'mode': 24300, 'name': 'sha1($salt.sha1($pass.$salt))', 'example_hash': '94520b02c04e79e08a75a84c2a6e3ed4e3874fe8:ThisIsATestSalt'},
+    {'mode': 24410, 'name': 'PKCS#8 Private Keys (PBKDF2-HMAC-SHA1 + 3DES/AES)', 'example_hash': '$PEM$1$4$f5662bd8383b4b40$2048$2993b585d3fb2e7b...12b46 [Truncated, use --mach for full length]'},
+    {'mode': 24420, 'name': 'PKCS#8 Private Keys (PBKDF2-HMAC-SHA256 + 3DES/AES)', 'example_hash': '$PEM$2$4$ed02960b8a10b1f1$2048$a634c482a95f23bd...fe6bb [Truncated, use --mach for full length]'},
+    {'mode': 24500, 'name': 'Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)', 'example_hash': '$telegram$2*100000*77461dcb457ce9539f8e4235d33b...4d24a [Truncated, use --mach for full length]'},
+    {'mode': 24600, 'name': 'SQLCipher', 'example_hash': 'SQLCIPHER*1*64000*25548249195677404156261816261456*85b5e156e1cf1e0be5e9f4217186817b*33435c230bbc7989bbd027630e3f47cd'},
+    {'mode': 24700, 'name': 'Stuffit5', 'example_hash': '66a75cb059'},
+    {'mode': 24800, 'name': 'Umbraco HMAC-SHA1', 'example_hash': '8uigXlGMNI7BzwLCJlDbcKR2FP4='},
+    {'mode': 24900, 'name': 'Dahua Authentication MD5', 'example_hash': 'GRuHbyVp'},
+    {'mode': 24901, 'name': 'Besder Authentication MD5', 'example_hash': 'GRmHbqVh'},
+    {'mode': 25000, 'name': 'SNMPv3 HMAC-MD5-96/HMAC-SHA1-96', 'example_hash': '$SNMPv3$0$45889431$30818f0201033011020409242fc0...59e90 [Truncated, use --mach for full length]'},
+    {'mode': 25100, 'name': 'SNMPv3 HMAC-MD5-96', 'example_hash': '$SNMPv3$1$45889431$30818f0201033011020409242fc0...59e90 [Truncated, use --mach for full length]'},
+    {'mode': 25200, 'name': 'SNMPv3 HMAC-SHA1-96', 'example_hash': '$SNMPv3$2$45889431$30818f02010330110204371780f3...55f6b [Truncated, use --mach for full length]'},
+    {'mode': 25300, 'name': 'MS Office 2016 - SheetProtection', 'example_hash': '$office$2016$0$100000$876MLoKTq42+/DLp415iZQ==$TNDvpvYyvlSUy97UOLKNhXynhUDDA7H8kLql0ISH5SxcP6hbthdjaTo4Z3/MU0dcR2SAd+AduYb3TB5CLZ8+ow=='},
+    {'mode': 25400, 'name': 'PDF 1.4 - 1.6 (Acrobat 5 - 8) - user and owner pass', 'example_hash': '$pdf$2*3*128*-3904*1*16*631ed33746e50fba5caf56bcc39e09c6*32*5f9d0e4f0b39835dace0d306c40cd6b700000000000000000000000000000000*32*842103b0a0dc886db9223b94afe2d7cd63389079b61986a4fcf70095ad630c24'},
+    {'mode': 25500, 'name': 'Stargazer Stellar Wallet XLM', 'example_hash': '$stellar$YAlIJziURRcBEWUwRSRDWA==$EutMmmcV5Hbf3p1I$rfSAF349RvGKG4R4Z2VCrH9WjNEKjbJa9hpOja9Yn8MwXruuFEMtw47HPn9CYj+JJ5Rb4Z87Wejj1c4fqpbMZHFOnqtQsVAr'},
+    {'mode': 25600, 'name': 'bcrypt(md5($pass))', 'example_hash': '$2a$05$/VT2Xs2dMd8GJKfrXhjYP.DkTjOVrY12yDN7/6I8ZV0q/1lEohLru'},
+    {'mode': 25700, 'name': 'MurmurHash', 'example_hash': 'b69e7687:05094309'},
+    {'mode': 25800, 'name': 'bcrypt(sha1($pass))', 'example_hash': '$2a$05$Uo385Fa0g86uUXHwZxB90.qMMdRFExaXePGka4WGFv.86I45AEjmO'},
+    {'mode': 25900, 'name': 'KNX IP Secure - Device Authentication Code', 'example_hash': '$knx-ip-secure-device-authentication-code$*3033*fa7c0d787a9467c209f0a6e7cf16069ed704f3959dce19e45d7935c0a91bce41*f927640d9bbe9a4b0b74dd3289ad41ec'},
+    {'mode': 26000, 'name': 'Mozilla key3.db', 'example_hash': '$mozilla$*3DES*b735d19e6cadb5136376a98c2369f22819d08c79*2b36961682200a877f7d5550975b614acc9fefe3*f03f3575fd5bdbc9e32232316eab7623'},
+    {'mode': 26100, 'name': 'Mozilla key4.db', 'example_hash': '$mozilla$*AES*5add91733b9b13310ea79a4b38de5c3f797c3bf1*54c17e2a8a066cbdc55f2080c5e9f02ea3954d712cb34b4547f5186548f46512*10000*040e4b5a00f993e63f67a34f6cfc5704*eae9c6c003e6d1b2aa8aa21630838808'},
+    {'mode': 26200, 'name': 'OpenEdge Progress Encode', 'example_hash': 'lebVZteiEsdpkncc'},
+    {'mode': 26300, 'name': 'FortiGate256 (FortiOS256)', 'example_hash': 'SH2lpcpFXM5QRlWYwY5vL9+5svfYyb+c79qENpxEoB3NtZpVxKwHjuq/9TH88U='},
+    {'mode': 26401, 'name': 'AES-128-ECB NOKDF (PT = $salt, key = $pass)', 'example_hash': 'e7a32f3210455cc044f26117c4612aab:86046627772965328523223752173724'},
+    {'mode': 26402, 'name': 'AES-192-ECB NOKDF (PT = $salt, key = $pass)', 'example_hash': '2995e91b798ef51232a91579edb1d176:49869364034411376791729962721320'},
+    {'mode': 26403, 'name': 'AES-256-ECB NOKDF (PT = $salt, key = $pass)', 'example_hash': '264a4248c9522cb74d33fe26cb596895:61270210011294880287232432636227'},
+    {'mode': 26500, 'name': 'iPhone passcode (UID key + System Keybag)', 'example_hash': '$uido$77889b1bca161ce876d976a102c7bf82$3090545724551425617156367874312887832777$50000$2d4c86b71c0c04129a47c6468e2437d1fecd88e232a7b15112d5364682dc391dbbbb921cf6e02664'},
+    {'mode': 26600, 'name': 'MetaMask Wallet (needs all data, checks AES-GCM tag)', 'example_hash': '$metamask$jfGI3TXguhb8GPnKSXFrMzRk2NCEc131Gt5G3...kwmqS [Truncated, use --mach for full length]'},
+    {'mode': 26610, 'name': 'MetaMask Wallet (short hash, plaintext check)', 'example_hash': '$metamask-short$jfGI3TXguhb8GPnKSXFrMzRk2NCEc131Gt5G3kZr5+s=$h+BoIf2CQ5BEjaIOShFE7g==$R95fzGt4UQ0uwrcrVYnIi4UcSlWn9wlmer+//526ZDwYAp50K82F1u1oacYcdjjhuEvbZnWk/uBG00UkgLLlOw=='},
+    {'mode': 26700, 'name': 'SNMPv3 HMAC-SHA224-128', 'example_hash': '$SNMPv3$3$45889431$308197020103301102047aa1a79e...57962 [Truncated, use --mach for full length]'},
+    {'mode': 26800, 'name': 'SNMPv3 HMAC-SHA256-192', 'example_hash': '$SNMPv3$4$45889431$30819f020103301102047fc51818...b89a0 [Truncated, use --mach for full length]'},
+    {'mode': 26900, 'name': 'SNMPv3 HMAC-SHA384-256', 'example_hash': '$SNMPv3$5$45889431$3081a70201033011020455c0c85c...792a5 [Truncated, use --mach for full length]'},
+    {'mode': 27000, 'name': 'NetNTLMv1 / NetNTLMv1+ESS (NT)', 'example_hash': '::5V4T:ada06359242920a500000000000000000000000000000000:0556d5297b5daa70eaffde82ef99293a3f3bb59b7c9704ea:9c23f6c094853920'},
+    {'mode': 27100, 'name': 'NetNTLMv2 (NT)', 'example_hash': '0UL5G37JOI0SX::6VB1IS0KA74:ebe1afa18b7fbfa6:aab8bf8675658dd2a939458a1077ba08:010100000000000031c8aa092510945398b9f7b7dde1a9fb00000000f7876f2b04b700'},
+    {'mode': 27200, 'name': 'Ruby on Rails Restful Auth (one round, no sitekey)', 'example_hash': '3999d08db95797891ec77f07223ca81bf43e1be2:5dcc47b04c49d3c8e1b9e4ec367fddeed21b7b85'},
+    {'mode': 27300, 'name': 'SNMPv3 HMAC-SHA512-384', 'example_hash': '$SNMPv3$6$45889431$3081b702010330110204367c80d4...feaf9 [Truncated, use --mach for full length]'},
+    {'mode': 27400, 'name': 'VMware VMX (PBKDF2-HMAC-SHA1 + AES-256-CBC)', 'example_hash': '$vmx$0$10000$264bbab02fdf7c1a793651120bec3723$cbb368564d8dfb99f509d4922f4693413f3816af713f0e76bc2409ff9336935d'},
+    {'mode': 27500, 'name': 'VirtualBox (PBKDF2-HMAC-SHA256 & AES-128-XTS)', 'example_hash': '$vbox$0$260000$fcc37189521686699a43e49514b91f15...3a08a [Truncated, use --mach for full length]'},
+    {'mode': 27600, 'name': 'VirtualBox (PBKDF2-HMAC-SHA256 & AES-256-XTS)', 'example_hash': '$vbox$0$160000$54aff69fca91c20b3b15618c6732c4a2...4d89c [Truncated, use --mach for full length]'},
+    {'mode': 27700, 'name': 'MultiBit Classic .wallet (scrypt)', 'example_hash': '$multibit$3*16384*8*1*7523cb5482e81b81*91780fd49b81a782ab840157a69ba7996d81270eaf456c850f314fc1787d9b0b'},
+    {'mode': 27800, 'name': 'MurmurHash3', 'example_hash': '23e93f65:00000000'},
+    {'mode': 27900, 'name': 'CRC32C', 'example_hash': '5e23d60f:00000000'},
+    {'mode': 28000, 'name': 'CRC64Jones', 'example_hash': '65c1f848fe38cce6:4260950400318054'},
+    {'mode': 28100, 'name': 'Windows Hello PIN/Password', 'example_hash': '$WINHELLO$*SHA512*10000*00761655*3b3d3197efb283...54100 [Truncated, use --mach for full length]'},
+    {'mode': 28200, 'name': 'Exodus Desktop Wallet (scrypt)', 'example_hash': 'EXODUS:16384:8:1:IYkXZgFETRmFp4wQXyP8XMe3LtuOw8wMdLcBVQ+9YWE=:lq0W9ekN5sC0O7Xw:UD4a6mUUhkTbQtGWitXHZUg0pQ4RHI6W/KUyYE95m3k=:ZuNQckXOtr4r21x+DT1zpQ=='},
+    {'mode': 28300, 'name': 'Teamspeak 3 (channel hash)', 'example_hash': '$teamspeak$3$E0aV0IQ29EDyxRfkFoQflUGJ6zo=$mRgDUkNpd0IwUEcTJQBmE0NHYwdDEhFzQ0VgMRcFJUIRYnaHBwNXRZJwk2ZUaURzdXkVYiUROERmI0hYYGFYCDiIJCeIU3N5EhRVcZFnSIRCJlkUFkY4YFMDcheYeTl4RYZEdpKGJYhxAIQJEYGYEA=='},
+    {'mode': 28400, 'name': 'bcrypt(sha512($pass))', 'example_hash': '$2a$12$KhivLhCuLhSyMBOxLxCyLu78x4z2X/EJdZNfS3Gy36fvRt56P2jbS'},
+    {'mode': 28501, 'name': 'Bitcoin WIF private key (P2PKH), compressed', 'example_hash': '1Jv6EonXm9x4Dw4QjEPAhGfmzFxTL7b3Zj'},
+    {'mode': 28502, 'name': 'Bitcoin WIF private key (P2PKH), uncompressed', 'example_hash': '1L9nr4GX4Zmd7gDL1UT75QPUqxSgNTvdHb'},
+    {'mode': 28503, 'name': 'Bitcoin WIF private key (P2WPKH, Bech32), compressed', 'example_hash': 'bc1qxd76a5zamfyw0g2d2rxkdh0zt9m0uzmxmwjf0q'},
+    {'mode': 28504, 'name': 'Bitcoin WIF private key (P2WPKH, Bech32), uncompressed', 'example_hash': 'bc1qv8e65p73gmp4w3z6fqnyu8t6ct69vetsda3snd'},
+    {'mode': 28505, 'name': 'Bitcoin WIF private key (P2SH(P2WPKH)), compressed', 'example_hash': '3H1YvmSdrjEfj9LvtiKJ8XiYq5htJRuejA'},
+    {'mode': 28506, 'name': 'Bitcoin WIF private key (P2SH(P2WPKH)), uncompressed', 'example_hash': '3LovFVx5zBRvusVcj7pf3JxV9V46kjKhKu'},
+    {'mode': 28600, 'name': 'PostgreSQL SCRAM-SHA-256', 'example_hash': 'SCRAM-SHA-256$4096:IKfxzJ8Nq4PkLJCfgKcPmA==$iRw3qwTp18uaBnsTOEExbtgWdKeBMbSSnZvqD4sdqLQ=:hPciC1CcnBna3szR8Mf3MVc8t0W7QPbIHoMMrh4zRV0='},
+    {'mode': 28700, 'name': 'Amazon AWS Signature Version 4', 'example_hash': '$AWS-Sig-v4$0$20220221T000000Z$us-east-1$s3$421ab6e4af9f49fa30fa9c253fcfeb2ce91668e139e6b23303c5f75b04f8a3c4$3755ed2bc1b2346e003ccaa7d02ae8b73c72bcbe9f452ccf066c78504d786bbb'},
+    {'mode': 28800, 'name': 'Kerberos 5, etype 17, DB', 'example_hash': '$krb5db$17$test$TEST.LOCAL$1c41586d6c060071e08186ee214e725e'},
+    {'mode': 28900, 'name': 'Kerberos 5, etype 18, DB', 'example_hash': '$krb5db$18$test$TEST.LOCAL$266b5a53a6d663c3f69174f3309acada8e467c097c7973699f86286a6cf1a6c7'},
+    {'mode': 29000, 'name': 'sha1($salt.sha1(utf16le($username).\':\'.utf16le($pass)))', 'example_hash': '339b5eaa53f28516008e9ca710857d3a4785b6fc:8ca064ff42fcab5a8f0692544b8dd3d3054bd73fe9afaa08c6b6b310538cc9a7:757365726e616d65'},
+    {'mode': 29100, 'name': 'Flask Session Cookie ($salt.$salt.$pass)', 'example_hash': 'eyJ1c2VybmFtZSI6ImFkbWluIn0.YjdgRQ.1OTlf1PD0H9wXsu_qS0aywAJVD8'},
+    {'mode': 29200, 'name': 'Radmin3', 'example_hash': '$radmin3$75007300650072006e0061006d006500*c63bf...216fe [Truncated, use --mach for full length]'},
+    {'mode': 29311, 'name': 'TrueCrypt RIPEMD160 + XTS 512 bit', 'example_hash': '$truecrypt$87914967f14737a67fb460f27b8aeb81de2b...21e18 [Truncated, use --mach for full length]'},
+    {'mode': 29312, 'name': 'TrueCrypt RIPEMD160 + XTS 1024 bit', 'example_hash': '$truecrypt$d6e1644acd373e6fdb8ccaaeab0c400d22ea...2415b [Truncated, use --mach for full length]'},
+    {'mode': 29313, 'name': 'TrueCrypt RIPEMD160 + XTS 1536 bit', 'example_hash': '$truecrypt$3916e924d246e5ceb17b140211fff57b6715...1037e [Truncated, use --mach for full length]'},
+    {'mode': 29321, 'name': 'TrueCrypt SHA512 + XTS 512 bit', 'example_hash': '$truecrypt$5ebff6b4050aaa3374f9946166a9c4134dd3...938f6 [Truncated, use --mach for full length]'},
+    {'mode': 29322, 'name': 'TrueCrypt SHA512 + XTS 1024 bit', 'example_hash': '$truecrypt$9f207bec0eded18a1b2e324d4f05d2f33f0b...7caa9 [Truncated, use --mach for full length]'},
+    {'mode': 29323, 'name': 'TrueCrypt SHA512 + XTS 1536 bit', 'example_hash': '$truecrypt$721a7f40d2b88de8e11f1a203b04ffa97a1f...99d2f [Truncated, use --mach for full length]'},
+    {'mode': 29331, 'name': 'TrueCrypt Whirlpool + XTS 512 bit', 'example_hash': '$truecrypt$cf53d4153414b63285e701e52c2d99e148c6...2c164 [Truncated, use --mach for full length]'},
+    {'mode': 29332, 'name': 'TrueCrypt Whirlpool + XTS 1024 bit', 'example_hash': '$truecrypt$e9e503972b72dee996b0bfced2df003a54b4...e7d31 [Truncated, use --mach for full length]'},
+    {'mode': 29333, 'name': 'TrueCrypt Whirlpool + XTS 1536 bit', 'example_hash': '$truecrypt$de7d6725cc4c910a7e96307df69d41335e64...6bde7 [Truncated, use --mach for full length]'},
+    {'mode': 29341, 'name': 'TrueCrypt RIPEMD160 + XTS 512 bit + boot-mode', 'example_hash': '$truecrypt$2b5da9924119fde5270f712ba3c3e4974460...7da8c [Truncated, use --mach for full length]'},
+    {'mode': 29342, 'name': 'TrueCrypt RIPEMD160 + XTS 1024 bit + boot-mode', 'example_hash': '$truecrypt$debcc3e74a7b2acb4c7eaa4ac86fd6431da1...db1c7 [Truncated, use --mach for full length]'},
+    {'mode': 29343, 'name': 'TrueCrypt RIPEMD160 + XTS 1536 bit + boot-mode', 'example_hash': '$truecrypt$5e6628907291b0b74a4f43a23fb0693acb71...58ea4 [Truncated, use --mach for full length]'},
+    {'mode': 29411, 'name': 'VeraCrypt RIPEMD160 + XTS 512 bit', 'example_hash': '$veracrypt$531aca1fa6db5118506320114cb11a9f00da...ba346 [Truncated, use --mach for full length]'},
+    {'mode': 29412, 'name': 'VeraCrypt RIPEMD160 + XTS 1024 bit', 'example_hash': '$veracrypt$531aca1fa6db5118506320114cb11a9f00da...ba346 [Truncated, use --mach for full length]'},
+    {'mode': 29413, 'name': 'VeraCrypt RIPEMD160 + XTS 1536 bit', 'example_hash': '$veracrypt$531aca1fa6db5118506320114cb11a9f00da...ba346 [Truncated, use --mach for full length]'},
+    {'mode': 29421, 'name': 'VeraCrypt SHA512 + XTS 512 bit', 'example_hash': '$veracrypt$2be25b279d8d2694e0ad1e5049902e717f1b...ef609 [Truncated, use --mach for full length]'},
+    {'mode': 29422, 'name': 'VeraCrypt SHA512 + XTS 1024 bit', 'example_hash': '$veracrypt$37e6db10454a5d74c1e75eca0bc8a70e67ac...648c9 [Truncated, use --mach for full length]'},
+    {'mode': 29423, 'name': 'VeraCrypt SHA512 + XTS 1536 bit', 'example_hash': '$veracrypt$d44f26d1742260f88023d825729cc5a64cf8...36101 [Truncated, use --mach for full length]'},
+    {'mode': 29431, 'name': 'VeraCrypt Whirlpool + XTS 512 bit', 'example_hash': '$veracrypt$48f79476aa0aa8327a8a9056e61450f4e288...898c9 [Truncated, use --mach for full length]'},
+    {'mode': 29432, 'name': 'VeraCrypt Whirlpool + XTS 1024 bit', 'example_hash': '$veracrypt$1b721942019ebe8cedddbed7744a0702c0e0...a4907 [Truncated, use --mach for full length]'},
+    {'mode': 29433, 'name': 'VeraCrypt Whirlpool + XTS 1536 bit', 'example_hash': '$veracrypt$5eb128daef63eff7e6db6aa10a8858f89964...ae668 [Truncated, use --mach for full length]'},
+    {'mode': 29441, 'name': 'VeraCrypt RIPEMD160 + XTS 512 bit + boot-mode', 'example_hash': '$veracrypt$528c2997054ce1d22cbc5233463df8119a03...097bb [Truncated, use --mach for full length]'},
+    {'mode': 29442, 'name': 'VeraCrypt RIPEMD160 + XTS 1024 bit + boot-mode', 'example_hash': '$veracrypt$a3c0fa44ec59bf7a3eed64bf70b8a6062366...c499d [Truncated, use --mach for full length]'},
+    {'mode': 29443, 'name': 'VeraCrypt RIPEMD160 + XTS 1536 bit + boot-mode', 'example_hash': '$veracrypt$1a8c0135fa94567aa866740cb27c5b9763c9...2aa7c [Truncated, use --mach for full length]'},
+    {'mode': 29451, 'name': 'VeraCrypt SHA256 + XTS 512 bit', 'example_hash': '$veracrypt$b8a19a544414e540172595aef79e6616f504...8af91 [Truncated, use --mach for full length]'},
+    {'mode': 29452, 'name': 'VeraCrypt SHA256 + XTS 1024 bit', 'example_hash': '$veracrypt$1c3197f32dc5b72b4d60474a7a43afefb0d2...b4857 [Truncated, use --mach for full length]'},
+    {'mode': 29453, 'name': 'VeraCrypt SHA256 + XTS 1536 bit', 'example_hash': '$veracrypt$f421bdc1087b8319c12d84a680ceab0102e8...a8c03 [Truncated, use --mach for full length]'},
+    {'mode': 29461, 'name': 'VeraCrypt SHA256 + XTS 512 bit + boot-mode', 'example_hash': '$veracrypt$c8a5f07efc320ecd797ac2c5b911b0f7ee68...5c590 [Truncated, use --mach for full length]'},
+    {'mode': 29462, 'name': 'VeraCrypt SHA256 + XTS 1024 bit + boot-mode', 'example_hash': '$veracrypt$6bb6eef1af55eb2b2849e1fc9c90c08f7050...50265 [Truncated, use --mach for full length]'},
+    {'mode': 29463, 'name': 'VeraCrypt SHA256 + XTS 1536 bit + boot-mode', 'example_hash': '$veracrypt$f95b222552195378a228d932f7df38ca459b...a7b70 [Truncated, use --mach for full length]'},
+    {'mode': 29471, 'name': 'VeraCrypt Streebog-512 + XTS 512 bit', 'example_hash': '$veracrypt$444ec71554f0a2989b34bd8a5750ae7b5ed8...b3ad1 [Truncated, use --mach for full length]'},
+    {'mode': 29472, 'name': 'VeraCrypt Streebog-512 + XTS 1024 bit', 'example_hash': '$veracrypt$0f5da0b17c60edcd392058752ec29c389b14...e86bd [Truncated, use --mach for full length]'},
+    {'mode': 29473, 'name': 'VeraCrypt Streebog-512 + XTS 1536 bit', 'example_hash': '$veracrypt$18d2e8314961850f8fc26d2bc6f896db9c4e...66205 [Truncated, use --mach for full length]'},
+    {'mode': 29481, 'name': 'VeraCrypt Streebog-512 + XTS 512 bit + boot-mode', 'example_hash': '$veracrypt$2bfe4a72e13388a9ce074bbe0711a48d62f1...772e8 [Truncated, use --mach for full length]'},
+    {'mode': 29482, 'name': 'VeraCrypt Streebog-512 + XTS 1024 bit + boot-mode', 'example_hash': '$veracrypt$af7a64c7c81f608527552532cc7049b0d369...dd752 [Truncated, use --mach for full length]'},
+    {'mode': 29483, 'name': 'VeraCrypt Streebog-512 + XTS 1536 bit + boot-mode', 'example_hash': '$veracrypt$0c9d7444e9e64a833e857163787b2f634922...0d9e0 [Truncated, use --mach for full length]'},
+    {'mode': 29511, 'name': 'LUKS v1 SHA-1 + AES', 'example_hash': '$luks$1$sha1$aes$cbc-essiv:sha256$128$151351$fe...95154 [Truncated, use --mach for full length]'},
+    {'mode': 29512, 'name': 'LUKS v1 SHA-1 + Serpent', 'example_hash': '$luks$1$sha1$serpent$cbc-plain64$256$152380$353...78952 [Truncated, use --mach for full length]'},
+    {'mode': 29513, 'name': 'LUKS v1 SHA-1 + Twofish', 'example_hash': '$luks$1$sha1$twofish$xts-plain64$256$151351$131...098f2 [Truncated, use --mach for full length]'},
+    {'mode': 29521, 'name': 'LUKS v1 SHA-256 + AES', 'example_hash': '$luks$1$sha256$aes$cbc-plain64$128$92180$10f269...c3f5c [Truncated, use --mach for full length]'},
+    {'mode': 29522, 'name': 'LUKS v1 SHA-256 + Serpent', 'example_hash': '$luks$1$sha256$serpent$xts-plain64$512$92561$03...e65b8 [Truncated, use --mach for full length]'},
+    {'mode': 29523, 'name': 'LUKS v1 SHA-256 + Twofish', 'example_hash': '$luks$1$sha256$twofish$cbc-essiv:sha256$256$925...a676d [Truncated, use --mach for full length]'},
+    {'mode': 29531, 'name': 'LUKS v1 SHA-512 + AES', 'example_hash': '$luks$1$sha512$aes$cbc-plain64$256$71794$33221d...86248 [Truncated, use --mach for full length]'},
+    {'mode': 29532, 'name': 'LUKS v1 SHA-512 + Serpent', 'example_hash': '$luks$1$sha512$serpent$cbc-essiv:sha256$128$717...19472 [Truncated, use --mach for full length]'},
+    {'mode': 29533, 'name': 'LUKS v1 SHA-512 + Twofish', 'example_hash': '$luks$1$sha512$twofish$cbc-plain64$256$72257$8c...5fee8 [Truncated, use --mach for full length]'},
+    {'mode': 29541, 'name': 'LUKS v1 RIPEMD-160 + AES', 'example_hash': '$luks$1$ripemd160$aes$cbc-essiv:sha256$256$1066...0b582 [Truncated, use --mach for full length]'},
+    {'mode': 29542, 'name': 'LUKS v1 RIPEMD-160 + Serpent', 'example_hash': '$luks$1$ripemd160$serpent$xts-plain64$256$10769...7c8b8 [Truncated, use --mach for full length]'},
+    {'mode': 29543, 'name': 'LUKS v1 RIPEMD-160 + Twofish', 'example_hash': '$luks$1$ripemd160$twofish$cbc-plain64$128$10769...fcbe6 [Truncated, use --mach for full length]'},
+    {'mode': 29600, 'name': 'Terra Station Wallet (AES256-CBC(PBKDF2($pass)))', 'example_hash': '67445496c838e96c1424a8dae4b146f0fc247c8c34ef33feffeb1e4412018512wZGtBMeN84XZE2LoOKwTGvA4Ee4m7PR1lDGIdWUV6OSUZKRiKFx9tlrnZLt8r8OfOzbwUS2a2Uo+nrrP6F85fh4eHstwPJw0KwzHWB8br58='},
+    {'mode': 29700, 'name': 'KeePass (KDBX v2/v3) - keyfile only', 'example_hash': '$keepass$*2*60000*0*02078d460c3c837003f22ee2ba4...98ed1 [Truncated, use --mach for full length]'},
+    {'mode': 29800, 'name': 'Bisq .wallet (scrypt)', 'example_hash': '$bisq$3*32768*8*6*31d838af87f99cb8*5cfb7bf3228d9e865881156e17b1866589ffa6b757011e25d1319083595236d2'},
+    {'mode': 29910, 'name': 'ENCsecurity Datavault (PBKDF2/no keychain)', 'example_hash': '$encdv-pbkdf2$1$1$121f898edc51ffb2$14e6bf4e9256f9e4$32$1972489853882254644795101599063579097812661888813652597380052274$100000'},
+    {'mode': 29920, 'name': 'ENCsecurity Datavault (PBKDF2/keychain)', 'example_hash': '$encdv-pbkdf2$3$1$c232aba45699c80b$473d5dd2e083...33064 [Truncated, use --mach for full length]'},
+    {'mode': 29930, 'name': 'ENCsecurity Datavault (MD5/no keychain)', 'example_hash': '$encdv$1$1$3a427b9ee5851118$4f52176bb9a1b3b6'},
+    {'mode': 29940, 'name': 'ENCsecurity Datavault (MD5/keychain)', 'example_hash': '$encdv$3$1$91b9babb3820c527$1ff4cb6657adad34$d9...b2646 [Truncated, use --mach for full length]'},
+    {'mode': 30000, 'name': 'Python Werkzeug MD5 (HMAC-MD5 (key = $salt))', 'example_hash': 'md5$84143$7f51edecfa6fb401a0b5e63d33fc8c0e'},
+    {'mode': 30120, 'name': 'Python Werkzeug SHA256 (HMAC-SHA256 (key = $salt))', 'example_hash': 'sha256$70108387805$8b9472281c36c3a693703de0e0f1ffab8fc0ecdd3bc5ead04c76dd74ef431e49'},
+    {'mode': 30420, 'name': 'DANE RFC7929/RFC8162 SHA2-256', 'example_hash': '127e6fbfe24a750e72930c220a8e138275656b8e5d8f48a98c3c92df'},
+    {'mode': 30500, 'name': 'md5(md5($salt).md5(md5($pass)))', 'example_hash': 'e13bb4b8e5a98db7277df344aa3363cf:28945624531'},
+    {'mode': 30600, 'name': 'bcrypt(sha256($pass))', 'example_hash': '$2b$10$FxDtpTNaL303lLcWtd6LFO2U6Gc63VJ07qycHcfqbQQ71GhO/qSzu'},
+    {'mode': 30601, 'name': 'bcrypt(HMAC-SHA256($pass))', 'example_hash': '$bcrypt-sha256$v=2,t=2b,r=12$KSOjON/ciJR86a00N5q61.$AmWZucQuHk13FGkQWhgMeiFvBfm2GCy'},
+    {'mode': 30700, 'name': 'Anope IRC Services (enc_sha256)', 'example_hash': 'sha256:ab67666e1f91cd38c0ab5bee9c8d2132eca7460354477109a739d4e735b14131:47bcfd0d573653943231df07445da774e5d06465c897ce40578b120bde187e26'},
+    {'mode': 30901, 'name': 'Bitcoin raw private key (P2PKH), compressed', 'example_hash': '14Fqy5AGRehazZ4NLzxFWy2E4BiNFdH9Ut'},
+    {'mode': 30902, 'name': 'Bitcoin raw private key (P2PKH), uncompressed', 'example_hash': '12sLRz1TKPZurKCwVqeT5FkW3Y7usipPbZ'},
+    {'mode': 30903, 'name': 'Bitcoin raw private key (P2WPKH, Bech32), compressed', 'example_hash': 'bc1q926ca6n7wz7gm2gfd8xc5p0vu687ngvnknpx74'},
+    {'mode': 30904, 'name': 'Bitcoin raw private key (P2WPKH, Bech32), uncompressed', 'example_hash': 'bc1qq6samcuksd2f6rsc48eu3lkq87zp33vfud0p0t'},
+    {'mode': 30905, 'name': 'Bitcoin raw private key (P2SH(P2WPKH)), compressed', 'example_hash': '3JqAMRQN3Gd6i8yV3Kw7v55RmFxW7iW2Aq'},
+    {'mode': 30906, 'name': 'Bitcoin raw private key (P2SH(P2WPKH)), uncompressed', 'example_hash': '3PmD8zdrFD8KVgLrguVDCP2RJB4Rh35G9Z'},
+    {'mode': 31000, 'name': 'BLAKE2s-256', 'example_hash': '$BLAKE2$2c719b484789ad5f6fc1739012182169b25484af156adc91d4f64f72400e574a'},
+    {'mode': 31100, 'name': 'ShangMi 3 (SM3)', 'example_hash': '51227e48ea74827b77fc142c3ec21d25cc42c794e6ac422825cd47ad4ac7913d'},
+    {'mode': 31200, 'name': 'Veeam VBK', 'example_hash': '$vbk$*54731702769149752741495960625996207399688284541933702394775960978730695504382155223405444342855920150089170058956647576461877712*10000*78cf7df8f1ed8bb50bda1129ec8e6810'},
+    {'mode': 31300, 'name': 'MS SNTP', 'example_hash': '$sntp-ms$cfc7023381cf6bb474cdcbeb0a67bdb3$907733697536811342962140955567108526489624716566696971338784438986103976327367763739445744705380'},
+    {'mode': 31400, 'name': 'SecureCRT MasterPassphrase v2', 'example_hash': 'S:"Config Passphrase"=02:ded7137400e0a1004a12f1708453968ccc270908ba02ab0345c83690d1de3d9937587be66ad2a7fe8cc6cb16ecff02e61ac05e09d4f49f284efd24f6b16d6ae3'},
+    {'mode': 31500, 'name': 'Domain Cached Credentials (DCC), MS Cache (NT)', 'example_hash': 'c896b3c6963e03c86ade3a38370bbb09:54161084332'},
+    {'mode': 31600, 'name': 'Domain Cached Credentials 2 (DCC2), MS Cache 2, (NT)', 'example_hash': '$DCC2$10240#6848#e2829c8af2232fa53797e2f0e35e4626'},
+    {'mode': 31700, 'name': 'md5(md5(md5($pass).$salt1).$salt2)', 'example_hash': 'c7a971e405313d0ecc22e37e8b2424a1:2316355934:478467'},
+    {'mode': 31800, 'name': '1Password, mobilekeychain (1Password 8)', 'example_hash': '$mobilekeychain$31800@hashcat.net$0226802599846...4d595 [Truncated, use --mach for full length]'},
+    {'mode': 31900, 'name': 'MetaMask Mobile Wallet', 'example_hash': '$metamaskMobile$JV4j2dUDl7n+sujyqW3Wvg==$398f9b04c822d36bfcbdd1e68c82d1e8$auj3J2TwOZ4ev3UIGmNa7VXLh0Nmzr3rDbpXRRrONr4='},
+    {'mode': 32000, 'name': 'NetIQ SSPR (MD5)', 'example_hash': '$sspr$0$100000$NONE$2c8586ef492e3c3dd3795395507dc14f'},
+    {'mode': 32010, 'name': 'NetIQ SSPR (SHA1)', 'example_hash': '$sspr$1$100000$NONE$b3485214dfa55b038a606a183a560dab7db4ecf1'},
+    {'mode': 32020, 'name': 'NetIQ SSPR (SHA-1 with Salt)', 'example_hash': '$sspr$2$100000$CxCpGqosk9PkCBcoRFp6DLjjRhVEJKK8$a33283d71c2ecaf4f3017b0a89feca2fc879221c'},
+    {'mode': 32030, 'name': 'NetIQ SSPR (SHA-256 with Salt)', 'example_hash': '$sspr$3$100000$ODk2NDA5Mjc2NDIwMjMwMjQyMTQ1NzMz$7195873d47c7e3627510862e37fe7cab9bc83b91feecb9864841bf80cff92419'},
+    {'mode': 32031, 'name': 'Adobe AEM (SSPR, SHA-256 with Salt)', 'example_hash': '$sspr$3$1000$f9bbf1381f481427$a1b45fd7eb190cc7f0bf831698cb777207eebbb4b7ea2abd6fff84be539aae62'},
+    {'mode': 32040, 'name': 'NetIQ SSPR (SHA-512 with Salt)', 'example_hash': '$sspr$4$100000$NzYwNjMyNDc2MTQ2OTE4NTUzODAyODE3$0ce2e8b8efa4280e6e003d77cb45d45300dff3960c5c073f68303565fe62fe4ff3ada8cee7d3b87d0457335ab0df73c5c64ee1f71ccf6b8bd43a316ecb42ecd4'},
+    {'mode': 32041, 'name': 'Adobe AEM (SSPR, SHA-512 with Salt)', 'example_hash': '$sspr$4$1000$9ad596c50a5c9acd$d4cdc3c7d227e3cc57a9c9014b1eff1684808ef40191482cd8ae6e9d7b66211a5f04e4b34f494b0513a5f67b9614c5ff16e95e624a60f41b16b90533f305146e'},
+    {'mode': 32050, 'name': 'NetIQ SSPR (PBKDF2WithHmacSHA1)', 'example_hash': '$pbkdf2-hmac-sha1$100000$7134180503252384106490944216249411431665011151428170747164626720$990e0c5f62b1384d48cbe3660329b9741c4a8473'},
+    {'mode': 32060, 'name': 'NetIQ SSPR (PBKDF2WithHmacSHA256)', 'example_hash': '$pbkdf2-sha256$100000$MDUzMTE4NjQyNDc5NTQxMjAwMjg1OTYxNjAxNDgzNzc$bwYpAyQ2g5PqdnMj8mJ46mkwQbyztw8gEQqnhDHj48c'},
+    {'mode': 32070, 'name': 'NetIQ SSPR (PBKDF2WithHmacSHA512)', 'example_hash': '$pbkdf2-hmac-sha512$100000.02112588415590109197...78777 [Truncated, use --mach for full length]'},
+    {'mode': 32100, 'name': 'Kerberos 5, etype 17, AS-REP', 'example_hash': '$krb5asrep$17$user$EXAMPLE.COM$a419c4030e555734...f964e [Truncated, use --mach for full length]'},
+    {'mode': 32200, 'name': 'Kerberos 5, etype 18, AS-REP', 'example_hash': '$krb5asrep$18$user$EXAMPLE.COM$aa4c494f520b2787...abe7d [Truncated, use --mach for full length]'},
+    {'mode': 32300, 'name': 'Empire CMS (Admin password)', 'example_hash': '5962d4ada95d6493379cd9c05ce7a376:726620866134417802643053384570:6056291339665060317728572165496183'},
+    {'mode': 32410, 'name': 'sha512(sha512($pass).$salt)', 'example_hash': '25d509824028a999f4ee851b5de404bb316b78ae8e974874376484018f58520e082747a7ce9f769bcaccb5f63878356c780f602e23393f12b650a6931e4b9338:21881837027919828109608'},
+    {'mode': 32420, 'name': 'sha512(sha512_bin($pass).$salt)', 'example_hash': 'c1bade2bd4ebc8db841ac6ab3e0a5035a29619e5b1a6135782b77da5d7cfaccee096f3ddb9ee23b9866378cfc2fb19f2c013fed1b7e1fffd18340a4f39238412:789'},
+    {'mode': 32500, 'name': 'Dogechain.info Wallet', 'example_hash': '$dogechain$0*5000*EEmAkgiMlVrToRhu2suq91R5Frf+V...NIg== [Truncated, use --mach for full length]'},
+    {'mode': 32600, 'name': 'CubeCart (whirlpool($salt.$pass.$salt))', 'example_hash': 'a2c0342a2617026fbaeed01130c826cc3f58242799894b3ecc1abfa811ede03fd712efd14a886af6fa74045502f22c9feb1c45a291cf2d7bbe9bb94c388b6403:deadbeef'},
+    {'mode': 32700, 'name': 'Kremlin Encrypt 3.0 w/NewDES', 'example_hash': '$kgb$0ab30cf7a52dad93$82a7c454246fc7570224e9f24279791aa2a63bf4'},
+    {'mode': 32800, 'name': 'md5(sha1(md5($pass)))', 'example_hash': '7b4f60b54472980e922280e225150dfa'},
+    {'mode': 32900, 'name': 'PBKDF1-SHA1', 'example_hash': 'PBKDF1:sha1:1000:cGVuZ3VpbmtlZXBlcg==:J4BrIhXDUHNQ9lPPrWKn4V7Of9Y='},
+    {'mode': 33000, 'name': 'md5($salt1.$pass.$salt2)', 'example_hash': '036a81bc84e01700faf965c3caaa3954:02434026169755...42238 [Truncated, use --mach for full length]'},
+    {'mode': 33100, 'name': 'md5($salt.md5($pass).$salt)', 'example_hash': '866244ca1d318292a6f40b60e03fd29c:72219426709'},
+    {'mode': 33300, 'name': 'HMAC-BLAKE2S (key = $pass)', 'example_hash': '0d541ae24d30aff2627c4d1a910f766088a64809edb46a05d29649a9b944da6c:1234'},
+    {'mode': 33400, 'name': 'mega.nz password-protected link (PBKDF2-HMAC-SHA512)', 'example_hash': 'P!AgD________U2XVjJi1vxkJgMPf5rkQYUn1H_6WI_sKtiic69mqBKP_____________________O_PDG0Om7BSapL1QoRAgUrz9vzaZmrYnU8t-Au6hteg'},
+    {'mode': 33500, 'name': 'RC4 40-bit DropN', 'example_hash': '$rc4$40$0$e9a41693b759cf88929ca31203694f$0$48656c6c6f'},
+    {'mode': 33501, 'name': 'RC4 72-bit DropN', 'example_hash': '$rc4$72$0$90eaa8d71c$0$48656c6c6f'},
+    {'mode': 33502, 'name': 'RC4 104-bit DropN', 'example_hash': '$rc4$104$0$a04245c3d7$0$48656c6c6f'},
+    {'mode': 33600, 'name': 'RIPEMD-320', 'example_hash': '8339009b816d4e4c2a6be3c6e1daac6aca69a7670ecdc583adfca0db17cc8f08ce35d6c759b038ab'},
+    {'mode': 33650, 'name': 'HMAC-RIPEMD320 (key = $pass)', 'example_hash': 'e740440e7bd65056a90f1aa4eb00e00308a9f1788866b4eacbd46cfc8032301d4e5b3a9d179be044:95454599772294521162217'},
+    {'mode': 33660, 'name': 'HMAC-RIPEMD320 (key = $salt)', 'example_hash': '345136b13b3a6e52901e2a414efa0cf5fca2fecf8b03279656d3b0f42c30df3006c5ad186494996b:2436077107013929602'},
+    {'mode': 33700, 'name': 'Microsoft Online Account (PBKDF2-HMAC-SHA256 + AES256)', 'example_hash': '$MSONLINEACCOUNT$0$10000$91869d1d5d3a1df25dd3f0e57bbc226a43641bc03086dcb5b6672941fcabce01'},
+    {'mode': 33800, 'name': 'WBB4 (Woltlab Burning Board) [bcrypt(bcrypt($pass))]', 'example_hash': '$2a$08$hashcatohohohohohohohegk6PN.SFkoXxDIkacAGKFN9AF8nx.Hi'},
+    {'mode': 33900, 'name': 'Citrix NetScaler (PBKDF2-HMAC-SHA256)', 'example_hash': '5567243c55099b6b10a714a350db53beea8be6ac9c247fd40fea7e96d206a9f11fd1c45735556ac2004138640de206d0e1522607ab3c3f92816156d2d7845068e'},
+    {'mode': 34000, 'name': 'Argon2', 'example_hash': '$argon2id$v=19$m=65536,t=3,p=1$FBMjI4RJBhIykCgol1KEJA$2ky5GAdhT1kH4kIgPN/oERE3Taiy43vNN70a3HpiKQU'},
+    {'mode': 34100, 'name': 'LUKS v2 argon2 + SHA-256 + AES', 'example_hash': '$luks$2$argon2id$sha256$aes$xts-plain64$512$m=1...926ad [Truncated, use --mach for full length]'},
+    {'mode': 34200, 'name': 'MurmurHash64A', 'example_hash': 'ef3014941bf1102d:837163b2348dfae1'},
+    {'mode': 34201, 'name': 'MurmurHash64A (zero seed)', 'example_hash': '73f8142b4326d36a'},
+    {'mode': 34211, 'name': 'MurmurHash64A truncated (zero seed)', 'example_hash': '73f8142b'},
+    {'mode': 34300, 'name': 'KeePass (KDBX v4)', 'example_hash': '$keepass$*4*2*ef636ddf*67108864*19*2*e4e48422ec...eefa9 [Truncated, use --mach for full length]'},
+    {'mode': 34400, 'name': 'sha224(sha224($pass))', 'example_hash': 'b7d9a0e57e6e94e8b87996b81ffa64b05d237c58fff1d7a4e4fe2a77'},
+    {'mode': 34500, 'name': 'sha224(sha1($pass))', 'example_hash': '10d302483c927df95abba98d69dcd9608365241d1523a8cc5fcbcedc'},
+    {'mode': 34600, 'name': 'MD6 (256)', 'example_hash': '539a8b63639c94b80e746611c476a684e7cc95235187b2f8b81a188d6dfbf64c'},
+    {'mode': 34700, 'name': 'Blockchain, My Wallet, Legacy Wallets', 'example_hash': '$blockchain$269$0349575305940509451603791869345...bd661 [Truncated, use --mach for full length]'},
+    {'mode': 34800, 'name': 'BLAKE2b-256', 'example_hash': '$BLAKE2$68b163391b3e779dcddba4e6d8fa03e962c29569b430efa5ba014303358557e1'},
+    {'mode': 34810, 'name': 'BLAKE2b-256($pass.$salt)', 'example_hash': '$BLAKE2$2b51353016a512b60e587bea98d799c2de243468085ca6cd67f983b2e55bfb67:2353288289'},
+    {'mode': 34820, 'name': 'BLAKE2b-256($salt.$pass)', 'example_hash': '$BLAKE2$a4cad0b026ed24adf13fb70ec31d35b02751dcb33354e2c9d20ef3f968748501:3601'},
+    {'mode': 35000, 'name': 'SAP CODVN H (PWDSALTEDHASH) isSHA512', 'example_hash': '{x-isSHA512, 15000}YZH/V2T7zlQMGeWLBarm5Oi3qV9Y8ByXQijD28+bjtLdo7YssXaUBkxMXbS3l4yVlYw97tvYj+vu/L37sg1reDEzODQ4MDY1NzQ1NjQ='},
+    {'mode': 35100, 'name': 'sm3crypt $sm3$, SM3 (Unix)', 'example_hash': '$sm3$KTTUB40dW4mRyRFd$ul2xLiIY3FJtbo8sv1R93sAYCkxQCH/6rmS1kD5vJYA'},
+    {'mode': 35200, 'name': 'AS/400 SSHA1', 'example_hash': '$as400$ssha1$*QTEST1*7ED7D3694D0A2E40A720D41031B456C09124966E'},
+    {'mode': 70000, 'name': 'Argon2id [Bridged: reference implementation + tunings]', 'example_hash': '$argon2id$v=19$m=65536,t=3,p=1$FBMjI4RJBhIykCgol1KEJA$2ky5GAdhT1kH4kIgPN/oERE3Taiy43vNN70a3HpiKQU'},
+    {'mode': 70100, 'name': 'scrypt [Bridged: Scrypt-Jane SMix]', 'example_hash': 'SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c='},
+    {'mode': 70200, 'name': 'scrypt [Bridged: Scrypt-Yescrypt]', 'example_hash': 'SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c='},
+    {'mode': 72000, 'name': 'Generic Hash [Bridged: Python Interpreter free-threading]', 'example_hash': '33522b0fd9812aa68586f66dba7c17a8ce64344137f9c7d8b11f32a6921c22de*9348746780603343'},
+    {'mode': 73000, 'name': 'Generic Hash [Bridged: Python Interpreter with GIL]', 'example_hash': '33522b0fd9812aa68586f66dba7c17a8ce64344137f9c7d8b11f32a6921c22de*9348746780603343'},
+    {'mode': 74000, 'name': 'Generic Hash [Bridged: Rust]', 'example_hash': '33522b0fd9812aa68586f66dba7c17a8ce64344137f9c7d8b11f32a6921c22de*9348746780603343'},
+    {'mode': 99999, 'name': 'Plaintext', 'example_hash': 'hashcat'},
+]
 
 
 class HashIdentifier:
-    b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890+/='
-    b64dot = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890+/=.'
-
-    def __find(self, hash):
-        if hash[0] == '$':
-            matches = self.__find_hash_format_dollar(hash)
-        elif self.__is_hex(hash):
-            matches = self.__find_hash_format_hex(hash)
-        elif ':' in hash:
-            matches = self.__find_hash_format_colon(hash)
-        elif '{' in hash and '}' in hash:
-            matches = self.__find_hash_format_braces(hash)
-        elif ',' in hash:
-            matches = self.__find_hash_format_comma(hash)
-        elif '$' in hash:
-            matches = self.__find_hash_format_dollar_within(hash)
-        elif '@' in hash:
-            matches = self.__find_hash_format_at(hash)
-        elif '*' in hash:
-            matches = self.__find_hash_format_asterisk(hash)
-        else:
-            matches = self.__find_hash_format_misc(hash)
-
-        return matches
-
-    def __find_hash_format_dollar(self, hash):
-        matches = []
-
-        # Remove the $ from the beginning, and split by $.
-        hash = hash[1:].split('$')
-        subhash = list(filter(len, hash[1].split('*')))
-        separators = len(hash)
-        subseparators = len(subhash)
-
-        sig = hash[0]
-
-        if sig == 'episerver':
-            if subhash[0] == '0':
-                matches.append(141)
-            elif subhash[0] == '1':
-                matches.append(1441)
-        elif sig == 'P' and self.__is_base64(True, hash[1]):
-            matches.append(400)
-        elif sig == 'DCC2':
-            subhash = list(filter(len, hash[1].split('#')))
-            if self.__is_hex(subhash[2]):
-                matches.append(2100)
-        elif sig == 'S' and self.__is_base64(False, hash[1]):
-            matches.append(7900)
-        elif sig == 'racf' and self.__is_hex(subhash[1]):
-            matches.append(8500)
-        elif sig == 'office':
-            if subhash[0] == '2007':
-                matches.append(9400)
-            elif subhash[0] == '2010':
-                matches.append(9500)
-            elif subhash[0] == '2013':
-                matches.append(9600)
-            elif len(hash) > 2 and hash[1] == '2016':
-                matches.append(25300)
-        elif sig == 'oldoffice':
-            if subhash[0] in ['0', '1']:
-                if ':' in subhash[-1]:
-                    matches.extend([9720])
-                else:
-                    matches.extend([9700, 9710])
-            elif subhash[0] in ['3', '4']:
-                matches.extend([9800, 9810, 9820])
-        elif sig == 'pdf':
-            if subhash[0] == '1':
-                if ':' in subhash[-1]:
-                    matches.extend([10420])
-                else:
-                    matches.extend([10400, 10410])
-            elif subhash[0] == '2':
-                matches.append(10500)
-                matches.append(25400)
-            elif subhash[0] == '5':
-                matches.extend([10600, 10700])
-        elif sig == 'postgres' and subhash[0] == 'postgres' and self.__is_hex(subhash[2]):
-            matches.append(11100)
-        elif sig == 'mysqlna' and self.__is_hex(subhash[1]):
-            matches.append(11200)
-        elif sig == '1' and self.__is_base64(True, hash[2]):
-            matches.append(500)
-        elif sig == 'BLAKE2' and self.__is_hex(hash[1]):
-            matches.append(600)
-        elif sig == 'apr1' and hash[1].isdigit() and self.__is_base64(True, hash[2]):
-            matches.append(1600)
-        elif sig == '6' and hash[1].isdigit() and self.__is_base64(True, hash[2]):
-            matches.append(1800)
-        elif sig == 'PHPS' and self.__is_hex(hash[2]):
-            matches.append(2612)
-        elif sig == '2a' and hash[1].isdigit() and self.__is_base64(True, hash[2]):
-            matches.append(3200)
-        elif sig == 'B' and self.__is_hex(hash[2]):
-            matches.append(3711)
-        elif sig == 'ml' and hash[1].isdigit() and self.__is_base64(True, hash[3]):
-            matches.append(7100)
-        elif sig == '5' and hash[1].isdigit() and self.__is_base64(True, hash[2]):
-            matches.append(7400)
-        elif sig == 'mysql':
-            subhash = hash[2].split('*')
-            if self.__is_hex(subhash[1], subhash[2]):
-                matches.append(7401)
-        elif sig == 'krb5pa' and self.__is_hex(hash[-1]):
-            if hash[1] == '23':
-                matches.append(7500)
-            elif hash[1] == '17':
-                matches.append(19800)
-            elif hash[1] == '18':
-                matches.append(19900)
-        elif sig == 'fde' and len(hash[5]) > 2048 and self.__is_hex(hash[5]):
-            matches.append(8800)
-        elif sig == '8' and hash[1].isdigit() and self.__is_base64(True, hash[2]):
-            matches.append(9200)
-        elif sig == '9' and hash[1].isdigit() and self.__is_base64(True, hash[2]):
-            matches.append(9300)
-        elif sig == 'cram_md5' and self.__is_base64(False, hash[1], hash[2]):
-            matches.append(10200)
-        elif sig == 'bitcoin' and self.__is_hex(hash[2]):
-            matches.append(11300)
-        elif sig == 'sip' and 'MD5' in hash[1]:
-            matches.append(11400)
-        elif sig == '7z':
-            matches.append(11600)
-        elif sig == 'ecryptfs':
-            matches.append(12200)
-        elif sig == 'RAR3':
-            if subhash[0] == '0' and self.__is_hex(subhash[1], subhash[2]):
-                matches.append(12500)
-            elif subhash[0] == '1':
-                if subhash[3] == '16':
-                    matches.extend([23700])
-                elif subhash[3] == '32':
-                    matches.extend([23800])
-        elif sig == 'blockchain':
-            if len(hash[2]) > 512 and self.__is_hex(hash[2]):
-                matches.append(12700)
-            elif hash[1] == 'v2':
-                matches.append(15200)
-        elif sig == 'rar5':
-            matches.append(13000)
-        elif sig == 'krb5tgs' and self.__is_hex(hash[-1]):
-            if hash[1] == '23':
-                matches.append(13100)
-            elif hash[1] == '17':
-                matches.append(19600)
-            elif hash[1] == '18':
-                matches.append(19700)
-        elif sig == 'axcrypt':
-            if subseparators == 4:
-                matches.extend([13200])
+    def __init__(self):
+        self.by_prefix = {}
+        self.by_regex = []
+        for entry in EXAMPLE_HASHES:
+            mode = entry['mode']
+            name = entry['name']
+            example = entry['example_hash']
+            if example.startswith("$"):
+                prefix = example.split("*")[0]
+                self.by_prefix.setdefault(prefix, []).append({"mode": mode, "name": name})
             else:
-                matches.extend([23500, 23600])
-        elif sig == 'axcrypt_sha1' and self.__is_hex(hash[1]):
-            matches.append(13300)
-        elif sig == 'keepass':
-            matches.append(13400)
-        elif sig == 'zip2':
-            matches.append(13600)
-        elif sig == 'sha1' and self.__is_base64(True, hash[3]):
-            matches.append(15100)
-        elif sig == 'tacacs-plus' and self.__is_hex(hash[2], hash[3]):
-            matches.append(16100)
-        elif sig == 'fvde':
-            if hash[1] == '1':
-                matches.append(16700)
-            elif hash[1] == '2':
-                matches.append(18300)
-        elif sig == 'pkzip2':
-            if subhash[0] == '1' and len(subhash[-1]) < 500:
-                matches.append(17200)
-            elif subhash[0] == '1' and len(subhash[-1]) > 500:
-                matches.append(17210)
-            elif subhash[0] == '3' and len(subhash[-1]) > 400:
-                matches.append(17220)
-            elif subhash[0] == '3' and len(subhash[-1]) < 128:
-                matches.append(17225)
-            elif subhash[0] == '8':
-                matches.append(17230)
-        elif sig == 'krb5asrep' and hash[1] == '23' and self.__is_hex(hash[-1]):
-            matches.append(18200)
-        elif sig == 'pbkdf2-sha512' and self.__is_base64(True, hash[2], hash[3]):
-            matches.append(20200)
-        elif sig == 'pbkdf2-sha256' and self.__is_base64(True, hash[2], hash[3]):
-            matches.append(20300)
-        elif sig == 'pbkdf2' and self.__is_base64(True, hash[2], hash[3]):
-            matches.append(20400)
-        elif sig == 'SHA' and self.__is_hex(hash[-1]):
-            matches.append(20711)
-        elif sig == 'solarwinds':
-            if hash[1] == '0':
-                matches.append(21500)
-            elif hash[1] == '1':
-                matches.append(21501)
-        elif sig == 'itunes_backup':
-            if subhash[0] == '9':
-                matches.append(14700)
-            elif subhash[0] == '10':
-                matches.append(14800)
-        elif sig == 'DPAPImk':
-            if subhash[3] == 'des3' and subhash[4] == 'sha1':
-                matches.append(15300)
-            elif subhash[3] == 'aes256' and subhash[4] == 'sha512':
-                matches.append(15900)
-        elif sig == 'chacha20':
-            matches.append(15400)
-        elif sig == 'jksprivk' and len(subhash[2]) > 2048:
-            matches.append(15500)
-        elif sig == 'ethereum':
-            if subhash[0] == 'p':
-                matches.append(15600)
-            elif subhash[0] == 's':
-                matches.append(15700)
-            elif subhash[0] == 'w':
-                matches.append(16300)
-        elif sig == 'ASN':
-            matches.append(16200)
-        elif sig == 'electrum':
-            if subhash[0] == '1':
-                matches.append(16600)
-            elif subhash[0] == '4':
-                matches.append(21700)
-            elif subhash[0] == '5':
-                matches.append(21800)
-        elif sig == 'ansible':
-            matches.append(16900)
-        elif sig == 'odf':
-            if subhash[0] == '1':
-                matches.append(18400)
-            elif subhash[0] == '0':
-                matches.append(18600)
-        elif sig == 'ab':
-            matches.append(18900)
-        elif sig == 'diskcryptor' and len(subhash[-1]) == 4096:
-            matches.extend([20011, 20012, 20013])
-        elif sig == 'bitlocker' and self.__is_hex(hash[-1]):
-            matches.append(22100)
-        elif sig == 'telegram':
-            if subhash[0] == '0':
-                matches.append(22301)
-            elif subhash[0] == '1':
-                matches.append(22600)
-            elif subhash[0] == '2':
-                matches.append(24500)
-        elif sig == 'aescrypt':
-            matches.append(22400)
-        elif sig == 'multibit':
-            if subhash[0] == '1':
-                matches.append(22500)
-            elif subhash[0] == '2':
-                matches.append(22700)
-        elif sig == 'sshng' and self.__is_hex(hash[-1]):
-            if hash[1] == '0':
-                matches.append(22911)
-            elif hash[1] == '6':
-                matches.append(22921)
-            elif hash[1] == '1':
-                matches.append(22931)
-            elif hash[1] == '4':
-                matches.append(22941)
-            elif hash[1] == '5':
-                matches.append(22951)
-        elif sig == 'zip3':
-            if subhash[2] == '128':
-                matches.append(23001)
-            elif subhash[2] == '192':
-                matches.append(23002)
-            elif subhash[2] == '256':
-                matches.append(23003)
-        elif sig == 'keychain':
-            matches.append(23100)
-        elif sig == 'xmpp-scram':
-            matches.append(23200)
-        elif sig == 'iwork':
-            matches.append(23300)
-        elif sig == 'bitwarden':
-            matches.append(23400)
-        elif sig == 'bcve':
-            matches.append(23900)
-        elif sig == 'PEM':
-            if hash[1] == '1':
-                matches.append(24410)
-            elif hash[1] == '2':
-                matches.append(24420)
-        elif sig == 'mongodb-scram':
-            if subhash[0] == '0':
-                matches.append(24100)
-            elif subhash[0] == '1':
-                matches.append(24200)
-        elif sig == 'stellar':
-            matches.append(25500)
-        elif sig == 'knx-ip-secure-device-authentication-code':
-            matches.append(25900)
-        elif sig == 'mozilla':
-            if subhash[0] == '3DES':
-                matches.append(26000)
-            elif subhash[0] == 'AES':
-                matches.append(26100)
+                try:
+                    regex = re.compile(re.escape(example[:16]))
+                    self.by_regex.append((regex, {"mode": mode, "name": name}))
+                except re.error:
+                    continue
 
-        return matches
+    def identify(self, hash_string):
+        results = []
+        for prefix, data_list in self.by_prefix.items():
+            if hash_string.startswith(prefix):
+                results.extend(data_list)
+        for regex, data in self.by_regex:
+            if regex.match(hash_string):
+                results.append(data)
+        # Deduplicate
+        seen = set()
+        dedup = []
+        for r in results:
+            key = (r["mode"], r["name"])
+            if key not in seen:
+                seen.add(key)
+                dedup.append(r)
+        if not dedup:
+            current_app.logger.debug(f"No match found for hash: {hash_string}")
+        return dedup
 
-    def __find_hash_format_hex(self, hash):
-        matches = []
-
-        if len(hash) == 8:
-            matches.append(18700)
-        elif len(hash) == 16:
-            matches.extend([200, 3000, 5100])
-        elif len(hash) == 24:
-            matches.extend([20500, 20510])
-        elif len(hash) == 32:
-            matches.extend([0, 900, 1000, 2600, 4300, 4400, 8600, 9900, 20900])
-        elif len(hash) == 40:
-            matches.extend([100, 300, 4500, 4700, 6000, 18500])
-        elif len(hash) == 48:
-            matches.append(122)
-        elif len(hash) == 50:
-            matches.append(125)
-        elif len(hash) == 56:
-            matches.extend([1300, 17300, 17700])
-        elif len(hash) == 64:
-            matches.extend([1400, 6900, 11700, 17400, 17800, 20800, 21400])
-        elif len(hash) == 70:
-            matches.append(1421)
-        elif len(hash) == 96:
-            matches.extend([10800, 17500, 17900])
-        elif len(hash) == 128:
-            matches.extend([1700, 6100, 11800, 17600, 18000, 21000])
-        elif len(hash) >= 1024:
-            matches.extend([6211, 6212, 6213, 6221, 6222, 6223, 6231, 6232, 6233, 6241, 6242, 6243])
-            matches.extend([13711, 13712, 13713, 13721, 13722, 13723, 13731, 13732, 13733])
-            matches.extend([13741, 13742, 13743, 13751, 13752, 13753, 13761, 13762, 13763, 13771, 13772, 13773])
-        elif len(hash) >= 512:
-            if len(hash) == 786:
-                matches.extend([2500, 2501])
-            else:
-                matches.extend([5200])
-        elif len(hash) > 128:
-            matches.extend([1722, 9000, 12300, 12900, 22200])
-        else:
-            matches.extend([8100, 24700])
-
-        return matches
-
-    def __find_hash_format_colon(self, hash):
-        matches = []
-
-        hash = list(filter(len, hash.split(':')))
-        separators = len(hash)
-        if separators == 2:
-            if hash[0].isdigit():
-                if hash[1] == '3600':
-                    matches.extend([18100])
-                else:
-                    matches.extend([7300])
-            elif self.__is_hex(hash[0]):
-                if len(hash[0]) <= 16:
-                    if len(hash[0]) == 8 and len(hash[0]) == 8:
-                        if hash[1] == '00000000':
-                            matches.extend([11500])
-                        else:
-                            matches.extend([14900])
-                    else:
-                        matches.extend([3100, 14000, 14100])
-                elif len(hash[0]) == 32:
-                    matches.extend([10, 11, 12, 20, 21, 23, 24, 30, 40, 50, 60, 1100, 2611, 2711, 2811, 3710, 3800, 3910])
-                    matches.extend([4010, 4110, 11000, 21200, 21300])
-                elif len(hash[0]) == 40:
-                    matches.extend([110, 112, 120, 121, 130, 140, 150, 160, 4510, 4520, 4521, 4522, 4710, 4711, 4900])
-                    matches.extend([5800, 8400,  13500, 13900, 14400, 21100, 24300])
-                elif len(hash[0]) == 64:
-                    matches.extend([1410, 1420, 1430, 1440, 1450, 1460, 11750, 11760, 12600, 13800, 20710, 22300])
-                elif len(hash[0]) == 128:
-                    matches.extend([1710, 1720, 1730, 1740, 1750, 1760, 11850, 11860, 15000])
-            elif self.__is_base64(True, hash[0]):
-                matches.extend([22, 2410])
-        elif separators == 3:
-            if self.__is_hex(hash[0]):
-                matches.extend([4800, 6600, 6800, 16801, 19300, 19500])
-        elif separators == 4:
-            if hash[0] == 'sha256':
-                matches.extend([10900])
-            elif hash[0] == 'md5':
-                matches.extend([11900])
-            elif hash[0] == 'sha1':
-                matches.extend([12000])
-            elif hash[0] == 'sha512':
-                matches.extend([12100])
-            elif hash[0] == 'otm_sha256':
-                matches.extend([20600])
-            elif self.__is_hex(hash[0]):
-                matches.extend([8200, 10100, 16800])
-            elif self.__is_base64(hash[0]):
-                matches.extend([5500, 8300])
-        elif separators == 5:
-            if self.__is_base64(hash[0]):
-                matches.extend([5600])
-        elif separators == 6:
-            if hash[0] == 'SCRYPT':
-                matches.extend([8900])
-        elif separators == 9:
-            if self.__is_hex(hash[0]):
-                matches.extend([5300, 5400])
-
-        return matches
-
-    def __find_hash_format_braces(self, hash):
-        matches = []
-
-        sig, data = self.__extract_braces(hash)
-        if sig == '{SHA}':
-            matches.extend([101])
-        elif sig == '{SSHA}':
-            matches.extend([111])
-        elif sig == '{SSHA256}':
-            matches.extend([1411])
-        elif sig == '{SSHA512}':
-            matches.extend([1711])
-        elif sig == '{smd5}':
-            matches.extend([6300])
-        elif sig == '{ssha256}':
-            matches.extend([6400])
-        elif sig == '{ssha512}':
-            matches.extend([6500])
-        elif sig == '{ssha1}':
-            matches.extend([6700])
-        elif sig == '{x-issha, 1024}':
-            matches.extend([10300])
-        elif sig == '{PBKDF2_SHA256}':
-            matches.extend([10901])
-        elif sig == '{PKCS5S2}':
-            matches.extend([12001])
-        elif sig == '{CRAM-MD5}':
-            matches.extend([16400])
-
-        return matches
-
-    def __find_hash_format_comma(self, hash):
-        matches = []
-
-        hash = hash.split(',')
-        if hash[0] == 'v1;PPH1_MD4':
-            matches.extend([12800])
-        elif hash[0][:6] == 'pbkdf2':
-            matches.extend([21600])
-
-        return matches
-
-    def __find_hash_format_dollar_within(self, hash):
-        matches = []
-
-        hash = hash.split('$')
-        if hash[0] == 'sha1':
-            matches.extend([124])
-        elif hash[0] == 'pbkdf2_sha256':
-            matches.extend([10000])
-        elif self.__is_hex(hash[0], hash[1]):
-            if len(hash[1]) <= 16:
-                matches.extend([7700, 7701])
-            else:
-                matches.extend([7800, 7801])
-
-        return matches
-
-    def __find_hash_format_at(self, hash):
-        matches = []
-
-        hash = list(filter(len, hash.split('@')))
-        if hash[0] == 'm':
-            matches.extend([19000])
-        elif hash[0] == 's':
-            matches.extend([19100])
-        elif hash[0] == 'S':
-            matches.extend([19200])
-
-        return matches
-
-    def __find_hash_format_asterisk(self, hash):
-        matches = []
-
-        hash = hash.split('*')
-        if hash[0] == 'WPA':
-            matches.extend([22000, 22001])
-        elif hash[0] == 'SQLCIPHER':
-            matches.append(24600)
-
-        return matches
-
-    def __find_hash_format_misc(self, hash):
-        matches = []
-
-        if hash[:6] == '0x0100':
-            matches.extend([131, 132])
-        elif hash[:6] == '0x0200':
-            matches.extend([1731])
-        elif hash[:5] == '0xc00':
-            matches.extend([8000])
-        elif hash[:19] == 'grub.pbkdf2.sha512.':
-            matches.extend([7200])
-        elif hash[0] == '(' and hash[-1] == ')':
-            matches.extend([8700, 9100])
-        elif hash[0] == '_':
-            matches.extend([12400])
-        elif hash[:3] == 'eyJ':
-            matches.extend([16500])
-        elif self.__is_base64(True, hash):
-            if len(hash) <= 16:
-                matches.extend([1500, 2400, 16000, 24900])
-            else:
-                matches.extend([133, 501, 5700, 7000, 18800, 24800])
-
-        return matches
-
-    def __extract_braces(self, hash):
-        index = hash.find('}') + 1
-        return hash[:index], hash[index:]
-
-    def __is_base64(self, include_dot, *args):
-        chars = self.b64dot if include_dot else self.b64
-        all_b64 = True
-        for arg in args:
-            if not all(c in chars for c in arg):
-                all_b64 = False
-                break
-        return all_b64
-
-    def __is_hex(self, *args):
-        all_hex = True
-        for arg in args:
-            if not all(c in string.hexdigits for c in arg):
-                all_hex = False
-                break
-        return all_hex
-
-    def guess(self, hash):
-        return [] if len(hash) == 0 else self.__find(hash)
+def guess_hash(hash_string):
+    identifier = HashIdentifier()
+    return identifier.identify(hash_string)

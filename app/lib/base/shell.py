@@ -1,12 +1,26 @@
+# shell.py
+
 import subprocess
 import datetime
 import shlex
-
+import sys
+import os
+import logging
+import tempfile
 from sqlalchemy import and_, desc
 
 from app.lib.models.system import ShellLogModel
 from app.lib.models.user import UserModel
 from app import db
+
+# Configure logging for this module
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    force=True
+)
+logger = logging.getLogger(__name__)
+logger.debug("shell.py module loaded")
 
 
 class ShellManager:
@@ -18,7 +32,24 @@ class ShellManager:
         if log_to_db:
             log = self.__log_start(' '.join(command), user_id)
 
-        output = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode().strip()
+        try:
+            logger.debug("Executing command: %s", command)
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False
+            )
+            output = result.stdout.decode().strip()
+            error = result.stderr.decode().strip()
+
+            if error:
+                logger.debug("stderr: %s", error)
+                output = output + ("\n[stderr]\n" + error)
+
+        except Exception as e:
+            logger.exception("Error running command")
+            output = f"Error: {e}"
 
         if log_to_db:
             log = self.__log_finish(log, output)
@@ -33,34 +64,31 @@ class ShellManager:
                 item = item + ' ' + shlex.quote(value)
             else:
                 item = item + ' ' + str(value)
-
             sanitised.append(item.strip())
-
         return sanitised
 
     def __log_start(self, command, user_id):
-        record = ShellLogModel(user_id=user_id, command=command, executed_at=datetime.datetime.now())
-        # Add
+        record = ShellLogModel(
+            user_id=user_id,
+            command=command,
+            executed_at=datetime.datetime.now()
+        )
         db.session.add(record)
-        # Save
         db.session.commit()
-        # Commit
         db.session.refresh(record)
-
+        logger.debug("Log start: %s", command)
         return record
 
     def __log_finish(self, record, output):
         record.output = output
-        record.output = output
         record.finished_at = datetime.datetime.now()
         db.session.commit()
         db.session.refresh(record)
-
+        logger.debug("Log finish: %s", output[:200])  # truncate for readability
         return record
 
     def get_logs(self, user_id=-1, page=0, per_page=0):
         conditions = and_(1 == 1)
-        # 0 is reserved for the system.
         if user_id >= 0:
             conditions = and_(ShellLogModel.user_id == user_id)
 
@@ -84,3 +112,10 @@ class ShellManager:
             logs = logs.paginate(page, per_page, False)
 
         return logs
+
+
+if __name__ == "__main__":
+    # Quick debug harness
+    sm = ShellManager(user_id=0)
+    test_cmd = ["/bin/echo", "Hello from ShellManager"]
+    print("Output:", sm.execute(test_cmd, log_to_db=False))
