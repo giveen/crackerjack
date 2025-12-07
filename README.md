@@ -87,6 +87,10 @@ Contributions are welcome. Please open an issue to discuss before implementing n
 
 ![](screenshots/cj-hashtype.png)
 
+## Extract Hashes Using XXX2John scripts
+
+![](screenshots/cj-extract.png)
+
 ## Wordlist Selection
 
 ![](screenshots/cj-wordlist.png)
