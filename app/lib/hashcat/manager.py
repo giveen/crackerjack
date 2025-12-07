@@ -1,6 +1,9 @@
 import collections
 import re
-
+import os
+import subprocess
+import tempfile
+from app.lib.base.hashid import EXAMPLE_HASHES
 
 class HashcatManager:
     def __init__(self, shell, hashcat_binary, hashid, status_interval=10, force=False, autoid=False):
@@ -12,55 +15,106 @@ class HashcatManager:
         self.autoid = autoid
 
     def get_supported_hashes(self):
-        output = self.shell.execute([self.hashcat_binary, '--help'], user_id=0, log_to_db=False)
+        """
+        Build a nested dictionary of category -> mode -> {name, example}
+        using hashid.py's EXAMPLE_HASHES.
+        """
+        supported = {"General": {}}
+        for entry in EXAMPLE_HASHES:
+            mode = str(entry['mode'])
+            supported["General"][mode] = {
+                "name": entry['name'],
+                "example": entry.get('example_hash', '')
+            }
+        return supported
 
-        # Split lines using \n and run strip against all elements of the list.
-        lines = list(map(str.strip, output.split("\n")))
-        hashes = self.__parse_supported_hashes(lines)
-        return hashes
 
-    def guess_hash(self, hash):
+
+    def guess_hashtype(self, user_id, session_id, contains_usernames):
+        """
+        Attempt to guess the hash type for the current session.
+        Handles both colon-delimited (username:hash) and $format$ style hashes.
+        """
+    
+        # Retrieve the hash string from your session model or however it's stored
+        hash_value = self.get_session_hash(user_id, session_id)
+    
+        # Defensive split: support username:hash and raw $format$ hashes
+        parts = hash_value.split(':', 1)
+        if len(parts) > 1:
+            hash_body = parts[1]
+        else:
+            hash_body = parts[0]
+    
+        # Run auto-detection if enabled, otherwise fall back to hashid
+        if self.autoid:
+            guesses = self.auto_guess_hash(hash_body)
+        else:
+            guesses = self.hashid.guess(hash_body)
+    
+        # Build results dictionary
         supported_hashes = self.get_supported_hashes()
-
-        guesses = self.auto_guess_hash(hash) if self.autoid else self.hashid.guess(hash)
         results = {
-            'hash': hash,
+            'hash': hash_value,
             'matches': guesses,
             'confidence': 0 if len(guesses) == 0 else round(100 / len(guesses)),
             'descriptions': {}
         }
+    
+        # Map each guess to its description
         for hashtype in results['matches']:
             description = self.__get_hashtype_description(hashtype, supported_hashes=supported_hashes)
-            if len(description) == 0:
-                continue
-            results['descriptions'][hashtype] = description
-
+            if description:
+                results['descriptions'][hashtype] = description
+    
         return results
 
+
+                                                                                                                                                                                                    
     def auto_guess_hash(self, hash):
         if len(self.hashcat_binary) == 0:
             return []
-
+    
+        # Write the hash to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
+            tmpfile.write(hash.strip() + "\n")
+            tmpfile_path = tmpfile.name
+    
         command = [
             self.hashcat_binary,
             '--id',
             '--machine-readable',
-            hash
+            tmpfile_path
         ]
-        output = self.shell.execute(command)
-        if len(output) == 0:
+    
+        print("Running command:", command)
+    
+        try:
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=30
+            )
+            output = result.stdout + result.stderr
+            print("Raw output (stdout + stderr):", repr(output))
+        except Exception as e:
+            print("Error running command:", e)
             return []
+        finally:
+            # Clean up temp file
+            if os.path.exists(tmpfile_path):
+                os.remove(tmpfile_path)
+    
+        if not output.strip():
+            print("No output from hashcat")
+            return []
+    
+        matches = re.findall(r'\d+', output)
+        return matches if matches else []
 
-        output = output.split("\r")
-        hashes = []
-        for item in output:
-            item = item.split("\n")
-            for guess in item:
-                if not guess.isnumeric():
-                    continue
-                hashes.append(guess)
-
-        return hashes
+ 
 
     def __parse_supported_hashes(self, lines):
         found = False
@@ -103,6 +157,25 @@ class HashcatManager:
                     hashes[info['category']][info['code']] = info['name']
 
         return self.__fix_alphanum_hashes(hashes, alphanum_hashes)
+        
+    def get_hashtype_description(self, hash_type, supported_hashes=None):
+        """
+        Look up the human-readable name for a given hash type.
+        """
+        if supported_hashes is None:
+            supported_hashes = self.get_supported_hashes()
+    
+        hash_type_str = str(hash_type)  # normalize to string
+    
+        for category, modes in supported_hashes.items():
+            info = modes.get(hash_type_str)
+            if info:
+                if isinstance(info, dict):
+                    return info.get('name', 'Unknown mode')
+                return str(info)
+    
+        return "Unknown mode"
+            
 
     def __fix_alphanum_hashes(self, hashes, alphanum_hashes):
         if len(alphanum_hashes) == 0:
@@ -151,32 +224,28 @@ class HashcatManager:
 
     def compact_hashes(self, hashes):
         data = {}
-        for type, hashes in hashes.items():
-            for code, hash in hashes.items():
-                data[code] = type + ' / ' + hash
-
-        # Sort dict - why you gotta be like that python? This is why you have no friends.
+        for category, modes in hashes.items():
+            for code, info in modes.items():
+                # info is a dict: {"name": ..., "example": ...}
+                name = info['name'] if isinstance(info, dict) else str(info)
+                data[code] = category + ' / ' + name
+    
+        # Sort dict by description
         data = collections.OrderedDict(sorted(data.items(), key=lambda kv: kv[1]))
         return data
 
-    def __get_hashtype_description(self, hash_type, supported_hashes=None):
-        description = ''
-        if supported_hashes is None:
-            supported_hashes = self.get_supported_hashes()
 
-        if not isinstance(hash_type, int):
-            hash_type = int(hash_type)
+    def get_supported_hashes(self):
+        supported = {"General": {}}
+        for entry in EXAMPLE_HASHES:
+            mode = str(entry['mode'])  # normalize to string
+            supported["General"][mode] = {
+                "name": entry['name'],
+                "example": entry.get('example_hash', '')
+            }
+        return supported
 
-        for type, hashes in supported_hashes.items():
-            for code, name in hashes.items():
-                if int(code) == hash_type:
-                    description = name
-                    break
 
-            if len(description) > 0:
-                break
-
-        return description
 
     def is_valid_hash_type(self, hash_type):
         valid = False
@@ -209,6 +278,8 @@ class HashcatManager:
         ]
 
         return command
+        
+        
 
     def build_command_line(self, session_name, mode, mask_type, masklist_path, mask, hashtype, hashfile, wordlist, rule, outputfile, potfile,
                            increment_min, increment_max, optimised_kernel, workload, contains_usernames, backend_devices):
