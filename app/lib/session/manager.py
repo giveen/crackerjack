@@ -1,9 +1,11 @@
 import re
 import random
+import subprocess
 import string
 import os
 import datetime
 import time
+import tempfile
 from app.lib.models.sessions import SessionModel, SessionNotificationModel
 from app.lib.models.hashcat import HashcatModel, HashcatHistoryModel
 from app.lib.session.filesystem import SessionFileSystem
@@ -486,18 +488,41 @@ class SessionManager:
         hashfile = self.session_filesystem.get_hashfile_path(user_id, session_id)
         if not os.path.isfile(hashfile):
             return []
-
-        # Get the first hash from the file
+    
         try:
             with open(hashfile, 'r') as f:
-                hash = f.readline().strip()
-
-            if contains_username:
-                hash = hash.split(':', 1)[1]
+                hash_line = f.readline().strip()
+            if contains_username and ':' in hash_line:
+                hash_line = hash_line.split(':', 1)[1]
         except UnicodeDecodeError:
-            hash = ''
+            hash_line = ''
+    
+        if not hash_line:
+            return []
+    
+        # Write the hash into a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmp:
+            tmp.write(hash_line + "\n")
+            tmp_path = tmp.name
+    
+        try:
+            # Use the configured hashcat binary path instead of hard‑coding
+            cmd = [self.hashcat.hashcat_binary, "--id", "--machine-readable", tmp_path]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            output = result.stdout.strip() + result.stderr.strip()
+    
+            modes = []
+            for line in output.splitlines():
+                if line.isdigit():
+                    modes.append(line)
+            return modes
+        finally:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
 
-        return self.hashcat.guess_hash(hash)
+
 
     def get_data_files(self, user_id, session_id):
         user_data_path = self.session_filesystem.get_user_data_path(user_id, session_id)
