@@ -5,6 +5,8 @@ from app.lib.models.user import UserModel
 from sqlalchemy import and_, func
 from app.lib.base.provider import Provider
 from urllib.parse import urlparse
+
+
 import urllib
 import time
 
@@ -89,7 +91,7 @@ def login_process():
     system = provider.system()
     system.run_updates()
 
-    if next and url_parse(next).netloc == '' and not next.startswith('http'):                                                                                                                                              
+    if next and urlparse(next).netloc == '' and not next.startswith('http'):                                                                                                                                                                                                                                                                                             
         return redirect(next)      
 
     return redirect(url_for('home.index'))

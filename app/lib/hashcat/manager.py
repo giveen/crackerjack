@@ -31,61 +31,89 @@ class HashcatManager:
         logger.debug("get_supported_hashes CALLED, sample: %s", list(supported.items())[:3])                                                                                                                               
         return supported     
 
-    def guess_hashtype(self, hashfile, contains_username):
-        logger.debug(">>> Entering guess_hashtype with hashfile=%s", hashfile)
-    
-        if not os.path.isfile(hashfile):
-            logger.debug("No hash file found, exiting early")
-            return {'hash': '', 'matches': [], 'confidence': 0, 'descriptions': {}}
-    
-        try:
-            with open(hashfile, 'r') as f:
-                hash_line = f.readline().strip()
-            logger.debug("Read hash line: %s", hash_line)
-            if contains_username and ':' in hash_line:
-                hash_line = hash_line.split(':', 1)[1]
-                logger.debug("Stripped username, hash body: %s", hash_line)
-        except Exception as e:
-            logger.exception("Error reading hash file: %s", e)
-            return {'hash': '', 'matches': [], 'confidence': 0, 'descriptions': {}}
-    
-        with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmp:
-            tmp.write(hash_line + "\n")
-            tmp_path = tmp.name
-        logger.debug("Temporary file created: %s", tmp_path)
-    
-        try:
-            cmd = [self.hashcat_binary, "--id", "--machine-readable", tmp_path]
-            logger.debug("Executing command: %s", cmd)
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            logger.debug("Return code: %s", result.returncode)
-            logger.debug("stdout:\n%s", result.stdout)
-            logger.debug("stderr:\n%s", result.stderr)
-    
-            modes = [line.strip() for line in (result.stdout + result.stderr).splitlines() if line.strip().isdigit()]
-            logger.debug("Parsed modes: %s", modes)
-    
-            supported_hashes = self.get_supported_hashes()
-            descriptions = {}
-            for mode in modes:
-                desc = supported_hashes.get(mode, "Unknown mode")
-                logger.debug("Mode %s resolved to %s", mode, desc)
-                descriptions[mode] = desc
-    
-            results = {
-                'hash': hash_line,
-                'matches': modes,
-                'confidence': 0 if not modes else round(100 / len(modes)),
-                'descriptions': descriptions
-            }
-            logger.debug("<<< Exiting guess_hashtype with results: %s", results)
-            return results
-        finally:
-            try:
-                os.remove(tmp_path)
-                logger.debug("Temporary file removed: %s", tmp_path)
-            except OSError as e:
-                logger.warning("Failed to remove temp file %s: %s", tmp_path, e)
+    def guess_hashtype(self, user_id, session_id, contains_username, session_filesystem):                                                                                                                                                                                                                                                                                        
+        """                                                                                                                                                                                                                
+        Attempt to guess the hash type for the current session.                                                                                                                                                            
+        Includes detailed debug logging and proper lookup.                                                                                                                                                                 
+        """                                                                                                                                                                                                                
+        hashfile = session_filesystem.get_hashfile_path(user_id, session_id)                                                                                                                                                                                                                                                                                       
+        logger.debug("guess_hashtype CALLED for user_id=%s session_id=%s", user_id, session_id)                                                                                                                            
+        logger.debug("Hash file path resolved: %s", hashfile)                                                                                                                                                              
+                                                                                                                                                                                                                           
+        if not os.path.isfile(hashfile):                                                                                                                                                                                   
+            logger.debug("No hash file found at %s", hashfile)                                                                                                                                                             
+            return {'hash': '', 'matches': [], 'confidence': 0, 'descriptions': {}}                                                                                                                                        
+                                                                                                                                                                                                                           
+        try:                                                                                                                                                                                                               
+            with open(hashfile, 'r') as f:                                                                                                                                                                                 
+                hash_line = f.readline().strip()                                                                                                                                                                           
+            logger.debug("Read first line from hash file: %s", hash_line)                                                                                                                                                  
+                                                                                                                                                                                                                           
+            if contains_username and ':' in hash_line:                                                                                                                                                                     
+                hash_line = hash_line.split(':', 1)[1]                                                                                                                                                                     
+                logger.debug("Stripped username prefix, hash body: %s", hash_line)                                                                                                                                         
+        except UnicodeDecodeError:                                                                                                                                                                                         
+            logger.warning("UnicodeDecodeError reading hash file, treating as empty")                                                                                                                                      
+            hash_line = ''                                                                                                                                                                                                 
+                                                                                                                                                                                                                           
+        if not hash_line:                                                                                                                                                                                                  
+            logger.debug("No usable hash line found")                                                                                                                                                                      
+            return {'hash': '', 'matches': [], 'confidence': 0, 'descriptions': {}}                                                                                                                                        
+                                                                                                                                                                                                                           
+        # Write to temp file                                                                                                                                                                                               
+        with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmp:                                                                                                                                                   
+            tmp.write(hash_line + "\n")                                                                                                                                                                                    
+            tmp_path = tmp.name                                                                                                                                                                                            
+        logger.debug("Temporary file created for hash identify: %s", tmp_path)                                                                                                                                             
+                                                                                                                                                                                                                           
+        try:                                                                                                                                                                                                               
+            cmd = [self.hashcat_binary, "--id", "--machine-readable", tmp_path]                                                                                                                                            
+            logger.debug("Executing Hashcat identify command: %s", cmd)                                                                                                                                                    
+                                                                                                                                                                                                                           
+            result = subprocess.run(cmd, capture_output=True, text=True)                                                                                                                                                   
+            output = (result.stdout or "") + (result.stderr or "")                                                                                                                                                         
+            logger.debug("Hashcat identify output:\n%s", output)                                                                                                                                                           
+                                                                                                                                                                                                                           
+            # Extract mode number                                                                                                                                                                                          
+            modes = []                                                                                                                                                                                                     
+            for line in output.splitlines():                                                                                                                                                                               
+                line = line.strip()                                                                                                                                                                                        
+                if line.isdigit():                                                                                                                                                                                         
+                    modes.append(line)                                                                                                                                                                                     
+                elif line.startswith("Autodetected hash-modes"):                                                                                                                                                           
+                    parts = line.split()                                                                                                                                                                                   
+                    if len(parts) > 1:                                                                                                                                                                                     
+                        try:                                                                                                                                                                                               
+                            mode = parts[1]                                                                                                                                                                                
+                            if mode.isdigit():                                                                                                                                                                             
+                                modes.append(mode)                                                                                                                                                                         
+                        except:                                                                                                                                                                                            
+                            pass                                                                                                                                                                                           
+                                                                                                                                                                                                                           
+            logger.debug("Parsed mode IDs from output: %s", modes)                                                                                                                                                         
+                                                                                                                                                                                                                           
+            # Use HashIdentifier to get mode names                                                                                                                                                                         
+            supported_hashes = self.get_supported_hashes()                                                                                                                                                                 
+            descriptions = {}                                                                                                                                                                                              
+            for mode in modes:                                                                                                                                                                                             
+                name = supported_hashes.get(mode, "Unknown mode")                                                                                                                                                          
+                descriptions[mode] = name                                                                                                                                                                                  
+                logger.debug("Mode %s resolved to %s", mode, name)                                                                                                                                                         
+                                                                                                                                                                                                                           
+            results = {                                                                                                                                                                                                    
+                'hash': hash_line,                                                                                                                                                                                         
+                'matches': modes,                                                                                                                                                                                          
+                'confidence': 0 if len(modes) == 0 else round(100 / len(modes)),                                                                                                                                           
+                'descriptions': descriptions                                                                                                                                                                               
+            }                                                                                                                                                                                                              
+            logger.debug("Final guess_hashtype results: %s", results)                                                                                                                                                      
+            return results                                                                                                                                                                                                 
+        finally:                                                                                                                                                                                                           
+            try:                                                                                                                                                                                                           
+                os.remove(tmp_path)                                                                                                                                                                                        
+                logger.debug("Temporary file %s removed", tmp_path)                                                                                                                                                        
+            except OSError as e:                                                                                                                                                                                           
+                logger.warning("Failed to remove temporary file %s: %s", tmp_path, e)
 
 
 

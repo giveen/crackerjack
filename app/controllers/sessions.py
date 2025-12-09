@@ -150,7 +150,7 @@ def setup_hashcat(session_id):
         flash('If you have compiled hashcat from source, make sure %s/.hashcat directory exists and is writable' % home_directory, 'error')
 
     hashfile = sessions.session_filesystem.get_hashfile_path(session.user_id, session.id)
-    guessed = hashcat.guess_hashtype(hashfile, session.hashcat.contains_usernames)
+    guessed = sessions.hashcat.guess_hashtype(user_id, session_id, session.hashcat.contains_usernames, sessions.session_filesystem)                                                                                                                                                                                                                                                                                                                                             
     
     return render_template(
         'sessions/setup/hashcat.html',
