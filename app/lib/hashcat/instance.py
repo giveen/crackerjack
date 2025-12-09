@@ -7,6 +7,7 @@ class HashcatInstance:
         self.session = session
         self.filesystem = filesystem
         self.hashcat = manager
+        self.manager = manager
         self.wordlists = wordlists
         self.device_profiles = device_profiles
         self.settings = HashcatModel.query.filter(HashcatModel.session_id == session.id).first()

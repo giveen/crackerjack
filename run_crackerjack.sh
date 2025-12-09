@@ -2,23 +2,28 @@
 set -e
 
 REQUIRED_PACKAGES="git screen python3-venv python3-pip sqlite3"
-
-echo "[*] Checking required packages..."
-sudo apt update
-sudo apt install -y $REQUIRED_PACKAGES
-
 VENV_DIR="venv"
 
+# ────────────────────────────────────────────────
+# Bootstrap only if venv doesn't exist
+# ────────────────────────────────────────────────
 if [ ! -d "$VENV_DIR" ]; then
+    echo "[*] First-time setup: installing system packages and creating venv..."
+    sudo apt update
+    sudo apt install -y $REQUIRED_PACKAGES
+
     echo "[*] Creating Python virtual environment..."
     python3 -m venv $VENV_DIR
+
+    source $VENV_DIR/bin/activate
+
+    echo "[*] Installing Python dependencies..."
+    pip install --upgrade pip
+    pip install -r requirements.txt
+else
+    echo "[*] Virtual environment already exists. Skipping apt and dependency install."
+    source $VENV_DIR/bin/activate
 fi
-
-source $VENV_DIR/bin/activate
-
-echo "[*] Installing Python dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
 
 # ────────────────────────────────────────────────
 # Database migrations

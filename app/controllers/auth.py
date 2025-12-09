@@ -89,8 +89,8 @@ def login_process():
     system = provider.system()
     system.run_updates()
 
-    if next and url_parse(next).netloc == '':
-        return redirect(next)
+    if next and url_parse(next).netloc == '' and not next.startswith('http'):                                                                                                                                              
+        return redirect(next)      
 
     return redirect(url_for('home.index'))
 

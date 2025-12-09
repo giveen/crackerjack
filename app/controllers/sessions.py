@@ -149,14 +149,19 @@ def setup_hashcat(session_id):
         flash('Could not get the supported hashes from hashcat', 'error')
         flash('If you have compiled hashcat from source, make sure %s/.hashcat directory exists and is writable' % home_directory, 'error')
 
+    hashfile = sessions.session_filesystem.get_hashfile_path(session.user_id, session.id)
+    guessed = hashcat.guess_hashtype(hashfile, session.hashcat.contains_usernames)
+    
     return render_template(
         'sessions/setup/hashcat.html',
         session=session,
         hashes_json=json.dumps(supported_hashes, indent=4, sort_keys=True, default=str),
-        guess_hashtype=sessions.guess_hashtype(session.user_id, session.id, session.hashcat.contains_usernames),
+        guess_hashtype=guessed,
         has_device_profiles=device_profiles.has_enabled_profiles(),
         device_profiles=device_profiles.get_device_profiles()
-    )
+)
+
+
 
 
 @bp.route('/<int:session_id>/setup/hashcat/save', methods=['POST'])
@@ -361,7 +366,6 @@ def setup_wordlist_save(session_id):
 def view(session_id):
     provider = Provider()
     sessions = provider.sessions()
-    hashcat = provider.hashcat()
 
     if not sessions.can_access(current_user, session_id):
         flash('Access Denied', 'error')
@@ -370,9 +374,9 @@ def view(session_id):
     user_id = 0 if current_user.admin else current_user.id
     session = sessions.get(user_id=user_id, session_id=session_id)[0]
 
-    supported_hashes = hashcat.get_supported_hashes()
-    # We need to process the array in a way to make it easy for JSON usage.
-    supported_hashes = hashcat.compact_hashes(supported_hashes)
+    # Use sessions to get supported hashes
+    supported_hashes = session.hashcat.manager.get_supported_hashes()
+    supported_hashes = session.hashcat.manager.compact_hashes(supported_hashes)                                                                                                                                            
 
     return render_template(
         'sessions/view.html',

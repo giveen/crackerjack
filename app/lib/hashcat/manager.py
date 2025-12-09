@@ -3,10 +3,16 @@ import re
 import os
 import subprocess
 import tempfile
+import logging
 from app.lib.base.hashid import EXAMPLE_HASHES
+
 
 import inspect
 print("DEBUG manager.py loaded from:", __file__)
+
+
+logger = logging.getLogger(__name__)
+
 
 class HashcatManager:
     def __init__(self, shell, hashcat_binary, hashid, status_interval=10, force=False, autoid=False):
@@ -16,97 +22,72 @@ class HashcatManager:
         self.status_interval = 10 if int(status_interval) <= 0 else int(status_interval)
         self.force = force
         self.autoid = autoid
+        
+    def get_supported_hashes(self):                                                                                                                                                                                        
+        supported = {}                                                                                                                                                                                                     
+        for entry in EXAMPLE_HASHES:                                                                                                                                                                                       
+            mode = str(entry['mode'])                                                                                                                                                                                      
+            supported[mode] = entry['name']                                                                                                                                                                                
+        logger.debug("get_supported_hashes CALLED, sample: %s", list(supported.items())[:3])                                                                                                                               
+        return supported     
 
-    def get_supported_hashes(self):
-        supported = {}
-        for entry in EXAMPLE_HASHES:
-            mode = str(entry['mode'])
-            supported[mode] = entry['name']
-        print("DEBUG get_supported_hashes CALLED, sample:", list(supported.items())[:3])
-        return supported
-
-
-    def guess_hashtype(self, user_id, session_id, contains_usernames):
-        """
-        Attempt to guess the hash type for the current session.
-        Handles both colon-delimited (username:hash) and $format$ style hashes.
-        """
-        # Retrieve the hash string from your session model or however it's stored
-        hash_value = self.get_session_hash(user_id, session_id)
+    def guess_hashtype(self, hashfile, contains_username):
+        logger.debug(">>> Entering guess_hashtype with hashfile=%s", hashfile)
     
-        # Defensive split: support username:hash and raw $format$ hashes
-        parts = hash_value.split(':', 1)
-        hash_body = parts[1] if len(parts) > 1 else parts[0]
-    
-        # Run auto-detection if enabled, otherwise fall back to hashid
-        if self.autoid:
-            guesses = self.auto_guess_hash(hash_body)
-        else:
-            guesses = self.hashid.guess(hash_body)
-    
-        # Build results dictionary
-        supported_hashes = self.get_supported_hashes()
-        results = {
-            'hash': hash_value,
-            'matches': guesses,
-            'confidence': 0 if len(guesses) == 0 else round(100 / len(guesses)),
-            'descriptions': {}
-        }
-    
-        # Map each guess to its description (just the name string)
-        for hashtype in results['matches']:
-            description = supported_hashes.get(str(hashtype), "Unknown mode")
-            results['descriptions'][hashtype] = description
-    
-        return results
-
-
-
-                                                                                                                                                                                                    
-    def auto_guess_hash(self, hash):
-        if len(self.hashcat_binary) == 0:
-            return []
-    
-        # Write the hash to a temporary file
-        with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmpfile:
-            tmpfile.write(hash.strip() + "\n")
-            tmpfile_path = tmpfile.name
-    
-        command = [
-            self.hashcat_binary,
-            '--id',
-            '--machine-readable',
-            tmpfile_path
-        ]
-    
-        print("Running command:", command)
+        if not os.path.isfile(hashfile):
+            logger.debug("No hash file found, exiting early")
+            return {'hash': '', 'matches': [], 'confidence': 0, 'descriptions': {}}
     
         try:
-            result = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=30
-            )
-            output = result.stdout + result.stderr
-            print("Raw output (stdout + stderr):", repr(output))
+            with open(hashfile, 'r') as f:
+                hash_line = f.readline().strip()
+            logger.debug("Read hash line: %s", hash_line)
+            if contains_username and ':' in hash_line:
+                hash_line = hash_line.split(':', 1)[1]
+                logger.debug("Stripped username, hash body: %s", hash_line)
         except Exception as e:
-            print("Error running command:", e)
-            return []
+            logger.exception("Error reading hash file: %s", e)
+            return {'hash': '', 'matches': [], 'confidence': 0, 'descriptions': {}}
+    
+        with tempfile.NamedTemporaryFile(delete=False, mode='w') as tmp:
+            tmp.write(hash_line + "\n")
+            tmp_path = tmp.name
+        logger.debug("Temporary file created: %s", tmp_path)
+    
+        try:
+            cmd = [self.hashcat_binary, "--id", "--machine-readable", tmp_path]
+            logger.debug("Executing command: %s", cmd)
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            logger.debug("Return code: %s", result.returncode)
+            logger.debug("stdout:\n%s", result.stdout)
+            logger.debug("stderr:\n%s", result.stderr)
+    
+            modes = [line.strip() for line in (result.stdout + result.stderr).splitlines() if line.strip().isdigit()]
+            logger.debug("Parsed modes: %s", modes)
+    
+            supported_hashes = self.get_supported_hashes()
+            descriptions = {}
+            for mode in modes:
+                desc = supported_hashes.get(mode, "Unknown mode")
+                logger.debug("Mode %s resolved to %s", mode, desc)
+                descriptions[mode] = desc
+    
+            results = {
+                'hash': hash_line,
+                'matches': modes,
+                'confidence': 0 if not modes else round(100 / len(modes)),
+                'descriptions': descriptions
+            }
+            logger.debug("<<< Exiting guess_hashtype with results: %s", results)
+            return results
         finally:
-            # Clean up temp file
-            if os.path.exists(tmpfile_path):
-                os.remove(tmpfile_path)
-    
-        if not output.strip():
-            print("No output from hashcat")
-            return []
-    
-        matches = re.findall(r'\d+', output)
-        return matches if matches else []
+            try:
+                os.remove(tmp_path)
+                logger.debug("Temporary file removed: %s", tmp_path)
+            except OSError as e:
+                logger.warning("Failed to remove temp file %s: %s", tmp_path, e)
 
- 
+
 
     def __parse_supported_hashes(self, lines):
         found = False

@@ -28,6 +28,14 @@ class SessionManager:
         self.cmd_sleep = 2
         self.device_profile_manager = device_profile_manager
 
+    # Ensure hashcat.manager is set                                                                                                                                                                                    
+        if hasattr(hashcat, 'manager'):                                                                                                                                                                                    
+            self.hashcat.manager = hashcat.manager                                                                                                                                                                         
+        else:                                                                                                                                                                                                              
+            # If not set, assign it directly                                                                                                                                                                               
+            self.hashcat.manager = hashcat        
+        
+
     def sanitise_name(self, name):
         return re.sub(r'\W+', '', name)
 
